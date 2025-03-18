@@ -6,6 +6,8 @@ Item {
     property alias label: configName.text
     property alias defaultValue: configValue.placeholderText
     property alias value: configValue.text
+    property alias configName: configName
+    property alias configValue: configValue
     property real widthRatio: 0.3
     Layout.minimumWidth: parent.width
     Layout.minimumHeight: 25

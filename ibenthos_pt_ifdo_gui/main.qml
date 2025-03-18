@@ -11,9 +11,8 @@ ApplicationWindow {
     visible: true
     width: 1200
     height: 600
-    title: "iBenthos - PhotoTransect processor"
+    title: "iBenthos - PhotoTransect Tool"
     id: root
-    property variant timezones: ["None"]
 
 
     RowLayout {
@@ -42,6 +41,8 @@ ApplicationWindow {
                     Layout.alignment: Qt.AlignRight
                     Layout.fillWidth: true
                     placeholderText: "Select an input directory..."
+                    text: userInputModel.importDirectory
+                    readOnly: true
                 }
 
                 Button {
@@ -55,7 +56,7 @@ ApplicationWindow {
                     id: importDirectory
                     title: "Select a directory"
                     onAccepted: {
-                        importDirPathField.text = importDirectory.currentFolder
+                        userInputModel.importDirectory = importDirectory.currentFolder
                         gpxFile.currentFolder = importDirectory.currentFolder
                         gpsPhoto.currentFolder = importDirectory.currentFolder
                     }
@@ -78,6 +79,8 @@ ApplicationWindow {
                     placeholderText: "Select a GPX file..."
                     Layout.alignment: Qt.AlignRight
                     Layout.fillWidth: true
+                    text: userInputModel.gpxFilepath
+                    readOnly: true
                 }
 
                 Button {
@@ -92,8 +95,7 @@ ApplicationWindow {
                     title: "Select a GPX file"
                     nameFilters: ["GPX files (*.gpx)"]
                     onAccepted: {
-                        gpxFilePathField.text = gpxFile.selectedFile
-                        mainModel.onGpxFileSelected(gpxFile.selectedFile)
+                        userInputModel.gpxFilepath = gpxFile.selectedFile
                     }
                 }
             }
@@ -113,6 +115,8 @@ ApplicationWindow {
                     Layout.alignment: Qt.AlignRight
                     Layout.fillWidth: true
                     placeholderText: "Select a GPS photo..."
+                    text: userInputModel.gpsPhotoFilepath
+                    readOnly: true
                 }
 
                 Button {
@@ -127,7 +131,7 @@ ApplicationWindow {
                     title: "Select a GPS photo"
                     nameFilters: ["Image files (*.jpg *.jpeg *.png *.bmp)"]
                     onAccepted: {
-                        gpsPhotoPathField.text = gpsPhoto.selectedFile
+                        userInputModel.gpsPhotoFilepath = gpsPhoto.selectedFile
                         gpsDateTime.visible = true
                         gpsTimezonePrompt.visible = true
                     }
@@ -135,7 +139,8 @@ ApplicationWindow {
             }
 
             Image {
-                source: gpsPhotoPathField.text
+                id: gpsPhotoPreview
+                source: userInputModel.gpsPhotoFilepath
                 Layout.preferredWidth: 400
                 Layout.preferredHeight: 300
                 Layout.alignment: Qt.AlignHCenter
@@ -147,10 +152,16 @@ ApplicationWindow {
                 id: gpsDateTime
                 label: "Date time on GPS:"
                 visible: false
+                date: userInputModel.gpsDate
+                time: userInputModel.gpsTime
                 configDate {
                     onEditingFinished: {
-                        dataCollectionStartDateTime.date = gpsDateTime.date
-                        dataCollectionEndDateTime.date = gpsDateTime.date
+                        userInputModel.gpsDate = configDate.text
+                    }
+                }
+                configTime {
+                    onEditingFinished: {
+                        userInputModel.gpsTime = configTime.text
                     }
                 }
             }
@@ -167,9 +178,13 @@ ApplicationWindow {
 
                 ComboBox {
                     id: gpsTimezoneInput
-                    model: timezones
-                    currentIndex: 0
-                    editable: true
+                    model: configModel.gpsTimezoneOptions
+                    currentIndex: userInputModel.gpsTimezoneIndex
+                    // editable: true
+                    onActivated: {
+                        userInputModel.gpsTimezoneIndex = gpsTimezoneInput.currentIndex
+                    }
+
                 }
             }
 
@@ -189,6 +204,8 @@ ApplicationWindow {
                     placeholderText: "Select an output directory..."
                     Layout.alignment: Qt.AlignRight
                     Layout.fillWidth: true
+                    readOnly: true
+                    text: userInputModel.exportDirectory
                 }
 
                 Button {
@@ -202,7 +219,7 @@ ApplicationWindow {
                     id: exportDirectory
                     title: "Select a directory"
                     onAccepted: {
-                        exportDirPathField.text = exportDirectory.currentFolder
+                        userInputModel.exportDirectory = exportDirectory.currentFolder
                     }
                 }
             }
@@ -226,20 +243,34 @@ ApplicationWindow {
                 
                 Text {
                     id: sitePointText
-                    width: sitePointPrompt.width*0.2
+                    Layout.minimumWidth: parent.width*0.2
                     text: "Site coordinates:"
                 }
 
                 TextField {
                     id: siteLatitudeField
-                    width: sitePointPrompt.width*0.4
+                    Layout.minimumWidth: parent.width*0.25
                     placeholderText: "Latitude"
+                    text: userInputModel.siteLatitude
+                    onEditingFinished: {
+                        userInputModel.siteLatitude = siteLatitudeField.text
+                    }
+                    validator: RegularExpressionValidator { 
+                        regularExpression: /^[+-]?([0-9]*[.])?[0-9]+$/ 
+                    }
                 }
 
                 TextField {
                     id: siteLongitudeField
-                    width: sitePointPrompt.width*0.4
+                    Layout.minimumWidth: parent.width*0.25
                     placeholderText: "Longitude"
+                    text: userInputModel.siteLongitude
+                    onEditingFinished: {
+                        userInputModel.siteLongitude = siteLongitudeField.text
+                    }
+                    validator: RegularExpressionValidator { 
+                        regularExpression: /^[+-]?([0-9]*[.])?[0-9]+$/ 
+                    }
                 }
             }
 
@@ -247,18 +278,36 @@ ApplicationWindow {
                 id: projectName
                 label: "Project Name:"
                 defaultValue: "iBenthos"
+                value: userInputModel.projectName
+                configValue {
+                    onEditingFinished: {
+                        userInputModel.projectName = configValue.text
+                    }
+                }
             }
 
             Components.ConfigTextBox {
                 id: campaignName
                 label: "Campaign Name:"
                 defaultValue: "North Sulawesi 2023"
+                value: userInputModel.campaignName
+                configValue {
+                    onEditingFinished: {
+                        userInputModel.campaignName = configValue.text
+                    }
+                }
             }
 
             Components.ConfigTextBox {
                 id: siteID
                 label: "Site ID:"
                 defaultValue: "NS01"
+                value: userInputModel.siteID
+                configValue {
+                    onEditingFinished: {
+                        userInputModel.siteID = configValue.text
+                    }
+                }
             }
 
             Text {
@@ -270,11 +319,35 @@ ApplicationWindow {
             Components.ConfigDateTime {
                 id: dataCollectionStartDateTime
                 label: "Start time:"
+                date: userInputModel.collectionStartDate
+                time: userInputModel.collectionStartTime
+                configDate {
+                    onEditingFinished: {
+                        userInputModel.collectionStartDate = configDate.text
+                    }
+                }
+                configTime {
+                    onEditingFinished: {
+                        userInputModel.collectionStartTime = configTime.text
+                    }
+                }
             }
 
             Components.ConfigDateTime {
                 id: dataCollectionEndDateTime
                 label: "End time:"
+                date: userInputModel.collectionEndDate
+                time: userInputModel.collectionEndTime
+                configDate {
+                    onEditingFinished: {
+                        userInputModel.collectionEndDate = configDate.text
+                    }
+                }
+                configTime {
+                    onEditingFinished: {
+                        userInputModel.collectionEndTime = configTime.text
+                    }
+                }
             }
 
             Components.ConfigTextBox {
@@ -282,6 +355,12 @@ ApplicationWindow {
                 label: "Camera ID:"
                 defaultValue: "1"
                 widthRatio: 0.7
+                value: userInputModel.cameraID
+                configValue {
+                    onEditingFinished: {
+                        userInputModel.cameraID = configValue.text
+                    }
+                }
             }
 
             Components.ConfigTextBox {
@@ -289,6 +368,15 @@ ApplicationWindow {
                 label: "Dist. above ground (m):"
                 defaultValue: "0.8"
                 widthRatio: 0.7
+                value: userInputModel.distanceAboveGround
+                configValue {
+                    onEditingFinished: {
+                        userInputModel.distanceAboveGround = configValue.text
+                    }
+                    validator: RegularExpressionValidator { 
+                        regularExpression: /^([0-9]*[.])?[0-9]+$/ 
+                    }
+                }
             }
 
             Components.ConfigTextBox {
@@ -296,6 +384,12 @@ ApplicationWindow {
                 label: "Collector's name:"
                 defaultValue: "Jane Smith"
                 widthRatio: 0.5
+                value: userInputModel.collectorName
+                configValue {
+                    onEditingFinished: {
+                        userInputModel.collectorName = configValue.text
+                    }
+                }
             }
 
             Components.ConfigTextBox {
@@ -303,6 +397,15 @@ ApplicationWindow {
                 label: "Collector's ORCID (optional):"
                 defaultValue: "0000-0000-0000-0000"
                 widthRatio: 0.5
+                value: userInputModel.collectorORCID
+                configValue {
+                    onEditingFinished: {
+                        userInputModel.collectorORCID = configValue.text
+                    }
+                    validator: RegularExpressionValidator { 
+                        regularExpression: /^(\d{4})-(\d{4})-(\d{4})-(\d{4})$/ 
+                    }
+                }
             }
 
             Components.ConfigTextBox {
@@ -310,26 +413,49 @@ ApplicationWindow {
                 label: "Organisation:"
                 defaultValue: "University of the Sea"
                 widthRatio: 0.5
+                value: userInputModel.organisation
+                configValue {
+                    onEditingFinished: {
+                        userInputModel.organisation = configValue.text
+                    }
+                }
             }
         }
 
         ColumnLayout {
             id: rightPane
             Layout.fillHeight: true
-            Layout.minimumWidth: root.width*0.3
-            // Layout.minimumWidth: 400
+            Layout.minimumWidth: root.width*0.33
+            RowLayout {
+                id: controlRow
+                Layout.minimumWidth: parent.width
+                
+                Button {
+                    text: "Clear Form"
+                    Layout.minimumWidth: parent.width*0.3
+                    Layout.alignment: Qt.AlignHCenter
+                    onClicked: {
+                        userInputModel.clearForm()
+                        gpsDateTime.visible = false
+                        gpsTimezonePrompt.visible = false
+                        gpsPhotoPreview.source = ""
+                    }
+                }
+
+                Button {
+                    text: "Start processing"
+                    Layout.minimumWidth: parent.width*0.3
+                    Layout.alignment: Qt.AlignHCenter
+                    onClicked: {
+                        if (userInputModel.validateForm()) {
+                            console.log("Form validated")
+                        } else {
+                            console.log("Form not validated")
+                        }
+                    }
+                }
+            }
         }
     }
-
-    Connections {
-        target: mainModel
-        function onAvgLatitudeChanged(latitude) {
-            siteLatitudeField.text = latitude
-        }
-        function onAvgLongitudeChanged(longitude) {
-            siteLongitudeField.text = longitude
-        }
-    }
-
 } 
 
