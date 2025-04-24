@@ -311,16 +311,16 @@ class UserInputModelValidator:
 
     def validate(self, model: UserInputModel) -> bool:
         main_validators = {
-            self._validate_import_directory : model.importDirectory,
-            self._validate_gpx_file : model.gpxFilepath,
-            self._validate_gps_photo_file : model.gpsPhotoFilepath,
-            self._validate_gps_date : model.gpsDate,
-            self._validate_gps_time : model.gpsTime,
-            self._validate_gps_timezone : model.gpsTimezoneIndex,
-            self._validate_output_directory : model.exportDirectory,
-            self._validate_ifdo_enable : model.ifdoEnable
+            self._validate_import_directory : [model.importDirectory],
+            self._validate_gpx_file : [model.gpxFilepath],
+            self._validate_gps_photo_file : [model.gpsPhotoFilepath],
+            self._validate_gps_date : [model.gpsDate],
+            self._validate_gps_time : [model.gpsTime],
+            self._validate_gps_timezone : [model.gpsTimezoneIndex],
+            self._validate_output_directory : [model.exportDirectory],
+            self._validate_ifdo_enable : [model.ifdoEnable]
         }
-        errors = list({x(y) for x, y in main_validators.items()})
+        errors = list({x(*y) for x, y in main_validators.items()})
         if len(errors) > 1:
             errors.remove(None)
             self.latest_errors = errors
