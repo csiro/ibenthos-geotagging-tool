@@ -1,24 +1,94 @@
+import datetime
+import logging
 import os
+import shutil
 import sys
 import threading
+import zoneinfo
 from pathlib import Path
 
 import gpxpy
-from PyQt6.QtCore import QObject, pyqtProperty, pyqtSignal, pyqtSlot
+import piexif
+from geotag_pt import PhotoTransectGPSTagger
+from PyQt6.QtCore import QObject, QThread, pyqtProperty, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QGuiApplication
 from PyQt6.QtQml import QQmlApplicationEngine
 
 from config_model import ConfigModel
-from user_input_model import UserInputModel
+from feedback_model import FeedbackModel
+from user_input_model import UserInputModel, UserInputModelValidator
+
+logger = logging.getLogger(__name__)
+
+
+
+def _get_images(directory: Path):
+    extensions = ['.jpg', '.jpeg', '.png']
+    if not directory.exists() or not directory.is_dir():
+        return []
+    file_list = list(directory.rglob("*"))
+    return [file for file in file_list if file.suffix.lower() in extensions]
+
+class GeotagWorker(QObject):
+    progress = pyqtSignal(int, int)
+    finished = pyqtSignal()
+
+    def __init__(self, tagger: PhotoTransectGPSTagger, import_dir: Path, export_dir: Path):
+        super().__init__()
+        self.tagger = tagger
+        self.import_dir = import_dir
+        self.export_dir = export_dir
+    
+    def run(self):
+        # Get images to be tagged
+        image_list = _get_images(self.import_dir)
+
+        total_images = len(image_list)
+
+        tally = 0
+
+        for image_fn in image_list:
+            exif_data = piexif.load(str(image_fn))
+            try:
+                exif_data = self.tagger.generate_new_exif(exif_data)
+            except IndexError as e:
+                logger.error(
+                    "Image %s not within range of GPX file. Skipping this image.", image_fn
+                )
+                logger.error(e)
+                continue
+            except AssertionError as _:
+                logger.error(
+                    "Image %s does not contain time data. Skipping this image.", image_fn
+                )
+                continue
+            save_fn = self.export_dir / image_fn.relative_to(self.import_dir)
+            save_fn.parent.mkdir(parents=True, exist_ok=True)
+            if not save_fn.parent.exists():
+                logger.error("Failed to create directory %s", save_fn.parent)
+                continue
+            shutil.copy2(image_fn, save_fn)
+            piexif.insert(
+                piexif.dump(exif_data), str(save_fn)
+            )
+            logger.info("Image %s geotagged and saved to %s", image_fn, save_fn)
+            tally += 1
+            self.progress.emit(tally, total_images)
+        self.finished.emit()
+
 
 
 class MainController(QObject):
-    def __init__(self, model: UserInputModel):
+    def __init__(self, model: UserInputModel, config: ConfigModel, feedback: FeedbackModel):
         super().__init__()
         self._model = model
+        self._config = config
         self._model.gpxFilepathChanged.connect(self.gpxFileSelected)
         self._model.gpsDateChanged.connect(self.gpsPhotoDateSet)
         self._model.importDirectoryChanged.connect(self.countImages)
+        self._feedback = feedback
+        self._worker = None
+        self._workerthread = None
 
     # Slot used to average the GPX file data to provide an estimated site location
     @pyqtSlot(str)
@@ -65,21 +135,62 @@ class MainController(QObject):
     # Slot to calculate number of images in the import directory
     @pyqtSlot(str, result=int)
     def countImages(self, directory):
-        extensions = ['.jpg', '.jpeg', '.png']
         path = Path(directory.replace("file://", ""))
         if not path.exists() or not path.is_dir():
             return 0
-        file_list = list(path.rglob("*"))
-        image_list = [file for file in file_list if file.suffix.lower() in extensions]
+        image_list = _get_images(path)
         return len(image_list)
+    
+    # Slot to start the geotagging process
+    @pyqtSlot(result=bool)
+    def geotag(self):
+        # Clear any previous feedback
+        self._feedback.feedbackText = ""
+        # Validate the input
+        validator = UserInputModelValidator()
+        self._feedback.feedbackText = "Validating input...\n"
+        if not validator.validate(self._model):
+            self._feedback.addFeedbackLine("Validation failed")
+            for error in validator.latest_errors:
+                self._feedback.addFeedbackLine(error)
+            return False
+        
+        # Create the PhotoTransectGPSTagger object
+        jpg_gps_timestamp = datetime.datetime.fromisoformat(
+            self._model.gpsDate + " " + self._model.gpsTime
+        )
+        jpg_gps_timestamp = jpg_gps_timestamp.replace(tzinfo=zoneinfo.ZoneInfo(
+            self._config.gpsTimezoneOptions[self._model.gpsTimezoneIndex]))
+        tagger = PhotoTransectGPSTagger.from_files(
+            self._model.gpxFilepath.replace("file://", ""),
+            self._model.gpsPhotoFilepath.replace("file://", ""),
+            jpg_gps_timestamp
+        )
 
+        # Create new worker thread
+        self._workerthread = QThread()
+        import_dir = Path(self._model.importDirectory.replace("file://", ""))
+        export_dir = Path(self._model.exportDirectory.replace("file://", ""))
+        self._worker = GeotagWorker(tagger, import_dir, export_dir)
+        self._worker.moveToThread(self._workerthread)
+        self._workerthread.started.connect(self._worker.run)
+        self._worker.progress.connect(self._feedback.updateProgress)
+        self._worker.finished.connect(self._workerthread.quit)
+        self._worker.finished.connect(self._worker.deleteLater)
+        self._workerthread.finished.connect(self._workerthread.deleteLater)
+        self._workerthread.start()
+        self._feedback.addFeedbackLine("Geotagging images...\n")
+        return True
+
+            
 if __name__ == "__main__":
     app = QGuiApplication(sys.argv)
     engine = QQmlApplicationEngine()
 
     user_input_model = UserInputModel()
     config_model = ConfigModel()
-    controller = MainController(user_input_model)
+    feedback_model = FeedbackModel()
+    controller = MainController(user_input_model, config_model, feedback_model)
 
     # Determine if we're a package or running as a script
     if getattr(sys, "frozen", False):
@@ -89,6 +200,8 @@ if __name__ == "__main__":
 
     engine.rootContext().setContextProperty("userInputModel", user_input_model)
     engine.rootContext().setContextProperty("configModel", config_model)
+    engine.rootContext().setContextProperty("feedbackModel", feedback_model)
+    engine.rootContext().setContextProperty("controller", controller)
     config_model.initialise()
     engine.load((app_path / "main.qml").as_uri())
 
