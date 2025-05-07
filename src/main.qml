@@ -146,7 +146,7 @@ ApplicationWindow {
                 Image {
                     id: gpsPhotoPreview
                     source: userInputModel.gpsPhotoFilepath
-                    Layout.preferredWidth: 400
+                    Layout.preferredWidth: 300
                     Layout.preferredHeight: 300
                     Layout.alignment: Qt.AlignHCenter
                     fillMode: Image.PreserveAspectFit
@@ -231,6 +231,7 @@ ApplicationWindow {
 
                 CheckBox {
                     text: "Export as an iFDO dataset"
+                    enabled: false
                     onToggled: {
                         ifdoEnable = checked
                     }
