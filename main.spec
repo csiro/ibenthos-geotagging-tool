@@ -2,10 +2,10 @@
 
 
 a = Analysis(
-    ['ibenthos_pt_ifdo_gui/main.py'],
+    ['src/main.py'],
     pathex=[],
-    binaries=[],
-    datas=[('ibenthos_pt_ifdo_gui/main.qml', '.'), ('ibenthos_pt_ifdo_gui/Components', 'Components')],
+    binaries=[('Image-ExifTool-13.29/exiftool', 'bin/exiftool'), ('Image-ExifTool-13.29/lib', 'bin/lib')],
+    datas=[('src/main.qml', '.'), ('src/Components', 'Components')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
