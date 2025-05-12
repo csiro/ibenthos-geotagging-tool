@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from src.user_input_model import UserInputModel, UserInputModelValidator
+from src.models import UserInputModel, UserInputModelValidator
 
 
 def valid_user_input_model() -> UserInputModel:

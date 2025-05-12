@@ -14,9 +14,7 @@ from PyQt6.QtCore import QObject, QThread, pyqtProperty, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QGuiApplication
 from PyQt6.QtQml import QQmlApplicationEngine
 
-from config_model import ConfigModel
-from feedback_model import FeedbackModel
-from user_input_model import UserInputModel, UserInputModelValidator
+import models
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +77,7 @@ class GeotagWorker(QObject):
 
 
 class MainController(QObject):
-    def __init__(self, model: UserInputModel, config: ConfigModel, feedback: FeedbackModel):
+    def __init__(self, model: models.UserInputModel, config: models.ConfigModel, feedback: models.FeedbackModel):
         super().__init__()
         self._model = model
         self._config = config
@@ -147,7 +145,7 @@ class MainController(QObject):
         # Clear any previous feedback
         self._feedback.feedbackText = ""
         # Validate the input
-        validator = UserInputModelValidator()
+        validator = models.UserInputModelValidator()
         self._feedback.feedbackText = "Validating input...\n"
         if not validator.validate(self._model):
             self._feedback.addFeedbackLine("Validation failed")
@@ -187,9 +185,9 @@ if __name__ == "__main__":
     app = QGuiApplication(sys.argv)
     engine = QQmlApplicationEngine()
 
-    user_input_model = UserInputModel()
-    config_model = ConfigModel()
-    feedback_model = FeedbackModel()
+    user_input_model = models.UserInputModel()
+    config_model = models.ConfigModel()
+    feedback_model = models.FeedbackModel()
     controller = MainController(user_input_model, config_model, feedback_model)
 
     # Determine if we're a package or running as a script
