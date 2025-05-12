@@ -8,7 +8,7 @@ import zoneinfo
 from pathlib import Path
 
 import gpxpy
-import piexif
+from exiftool import ExifToolHelper
 from geotag_pt import PhotoTransectGPSTagger
 from PyQt6.QtCore import QObject, QThread, pyqtProperty, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QGuiApplication
@@ -36,7 +36,7 @@ class GeotagWorker(QObject):
         self.tagger = tagger
         self.import_dir = import_dir
         self.export_dir = export_dir
-    
+
     def run(self):
         # Get images to be tagged
         image_list = _get_images(self.import_dir)
@@ -44,34 +44,32 @@ class GeotagWorker(QObject):
         total_images = len(image_list)
 
         tally = 0
-
-        for image_fn in image_list:
-            exif_data = piexif.load(str(image_fn))
-            try:
-                exif_data = self.tagger.generate_new_exif(exif_data)
-            except IndexError as e:
-                logger.error(
-                    "Image %s not within range of GPX file. Skipping this image.", image_fn
-                )
-                logger.error(e)
-                continue
-            except AssertionError as _:
-                logger.error(
-                    "Image %s does not contain time data. Skipping this image.", image_fn
-                )
-                continue
-            save_fn = self.export_dir / image_fn.relative_to(self.import_dir)
-            save_fn.parent.mkdir(parents=True, exist_ok=True)
-            if not save_fn.parent.exists():
-                logger.error("Failed to create directory %s", save_fn.parent)
-                continue
-            shutil.copy2(image_fn, save_fn)
-            piexif.insert(
-                piexif.dump(exif_data), str(save_fn)
-            )
-            logger.info("Image %s geotagged and saved to %s", image_fn, save_fn)
-            tally += 1
-            self.progress.emit(tally, total_images)
+        with ExifToolHelper() as et:
+            for image_fn in image_list:
+                exif_data = et.get_metadata(str(image_fn))[0]
+                try:
+                    gps_tags = self.tagger.generate_gps_tags(exif_data)
+                except IndexError as e:
+                    logger.error(
+                        "Image %s not within range of GPX file. Skipping this image.", image_fn
+                    )
+                    logger.error(e)
+                    continue
+                except AssertionError as _:
+                    logger.error(
+                        "Image %s does not contain time data. Skipping this image.", image_fn
+                    )
+                    continue
+                save_fn = self.export_dir / image_fn.relative_to(self.import_dir)
+                save_fn.parent.mkdir(parents=True, exist_ok=True)
+                if not save_fn.parent.exists():
+                    logger.error("Failed to create directory %s", save_fn.parent)
+                    continue
+                shutil.copy2(image_fn, save_fn)
+                et.set_tags(files=save_fn, tags=gps_tags, params=['-overwrite_original'])
+                logger.info("Image %s geotagged and saved to %s", image_fn, save_fn)
+                tally += 1
+                self.progress.emit(tally, total_images)
         self.finished.emit()
 
 
@@ -138,7 +136,7 @@ class MainController(QObject):
             return 0
         image_list = _get_images(path)
         return len(image_list)
-    
+
     # Slot to start the geotagging process
     @pyqtSlot(result=bool)
     def geotag(self):
@@ -152,7 +150,7 @@ class MainController(QObject):
             for error in validator.latest_errors:
                 self._feedback.addFeedbackLine(error)
             return False
-        
+
         # Create the PhotoTransectGPSTagger object
         jpg_gps_timestamp = datetime.datetime.fromisoformat(
             self._model.gpsDate + " " + self._model.gpsTime
@@ -180,7 +178,6 @@ class MainController(QObject):
         self._feedback.addFeedbackLine("Geotagging images...\n")
         return True
 
-            
 if __name__ == "__main__":
     app = QGuiApplication(sys.argv)
     engine = QQmlApplicationEngine()
