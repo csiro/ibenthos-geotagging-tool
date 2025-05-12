@@ -21,17 +21,18 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='iBenthos PT Tool',
-    debug=False,
+    name='iBenthos Geotagging Tool',
+    debug=True,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False,
+    console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='logo.png',
 )
 coll = COLLECT(
     exe,
@@ -40,11 +41,12 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='iBenthos PT Tool',
+    name='iBenthos Geotagging Tool',
 )
+
 app = BUNDLE(
     coll,
-    name='iBenthos PT Tool.app',
-    icon='ibenthos.png',
+    name='iBenthos Geotagging Tool.app',
+    icon='logo.png',
     bundle_identifier=None,
 )
