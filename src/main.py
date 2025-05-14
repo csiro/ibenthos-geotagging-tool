@@ -105,7 +105,7 @@ class GeotagWorker(QObject):
 
         hasher = hashlib.sha256()
 
-        with open(self.import_dir / relative_fn, 'rb') as f:
+        with open(self.export_dir / relative_fn, 'rb') as f:
             while chunk := f.read(1_048_576):  # 1MB chunks
                 hasher.update(chunk)
 
@@ -115,11 +115,11 @@ class GeotagWorker(QObject):
             image_platform = f"{exif_data['EXIF:Make']} {exif_data['EXIF:Model']}"
         else:
             image_platform = "Unknown"
-        
-        with Image.open(self.import_dir / relative_fn) as img:
+
+        with Image.open(self.export_dir / relative_fn) as img:
             image_entropy = get_shannon_entropy(img)
             image_average_color = get_average_image_color(img)
-        
+
         self.ifdo_model.add_image_properties(
             image_relative_path=str(relative_fn),
             image_datetime=image_datetime,
@@ -131,9 +131,6 @@ class GeotagWorker(QObject):
             image_entropy=image_entropy,
             image_average_color=[*image_average_color]
         )
-        
-
-
 
     def run(self):
         # Get images to be tagged
@@ -178,14 +175,12 @@ class GeotagWorker(QObject):
             logger.info("IFDO file saved to %s", ifdo_path)
         self.finished.emit("Finished geotagging images.")
 
-
 class MainController(QObject):
-    def __init__(self, model: models.UserInputModel, config: models.ConfigModel, feedback: models.FeedbackModel):
+    def __init__(self, model: models.UserInputModel, config: models.ConfigModel,
+                       feedback: models.FeedbackModel):
         super().__init__()
         self._model = model
         self._config = config
-        self._model.gpxFilepathChanged.connect(self.gpxFileSelected)
-        self._model.gpsDateChanged.connect(self.gpsPhotoDateSet)
         self._model.importDirectoryChanged.connect(self.countImages)
         self._feedback = feedback
         self._worker = None
@@ -223,7 +218,6 @@ class MainController(QObject):
         avg_lon /= count
         avg_ele /= count
         return avg_lat, avg_lon, avg_ele
-
 
     # Slot used to assist in setting start and stop times based on the GPS photo date
     @pyqtSlot(str)
@@ -269,12 +263,18 @@ class MainController(QObject):
         )
 
         # Create the IFDO model
-        self._feedback.addFeedbackLine(f"{self._model.ifdoEnable}\n")
         if self._model.ifdoEnable:
-            ifdo_model = IFDOModel("test_set", "iBenthos", "test_project", "test_event",
-                                   ("Brendan Do", "0000-0000-0000-0000"),
-                                   [("Brendan Do", "0000-0000-0000-0000")],
-                                   "CSIRO", "Photos for testing", "Photos for testing")
+            ifdo_model = IFDOModel(image_set_name=self._model.imageSetName,
+                                   image_context=self._model.imageContext,
+                                   image_project=self._model.projectName,
+                                   image_event=self._model.campaignName,
+                                   image_pi=(self._model.piName, self._model.piORCID if self._model.piORCID != "" else "0000-0000-0000-0000"),
+                                   image_creators=[(self._model.collectorName, self._model.collectorORCID if self._model.collectorORCID != "" else "0000-0000-0000-0000")],
+                                   image_copyright=self._model.organisation,
+                                   image_license=self._model.license,
+                                   image_abstract=self._model.imageAbstract,
+                                   image_objective=self._model.imageObjective,
+                                   image_meters_above_ground=float(self._model.distanceAboveGround))
         else:
             ifdo_model = None
 
@@ -291,7 +291,7 @@ class MainController(QObject):
         self._worker.finished.connect(self._worker.deleteLater)
         self._workerthread.finished.connect(self._workerthread.deleteLater)
         self._workerthread.start()
-        self._feedback.addFeedbackLine("Geotagging images...\n")
+        self._feedback.addFeedbackLine("Geotagging images...")
         return True
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 '''
 ifdo.py
-Module is a stop-gap replacement for marimba.
+Module is a stop-gap replacement for marimba packaging.
 '''
 import datetime
 import uuid
@@ -52,7 +52,7 @@ class IFDOModel:
         self.image_project = image_project
         self.image_event = image_event
         self.image_pi = {'name': image_pi[0], 'uri': image_pi[1]}
-        self.image_creators = [{'name': creator[0], 'uri': creator[1]} for creator in image_creators]
+        self.image_creators = [{'name': x[0], 'uri': x[1]} for x in image_creators]
         self.image_license = {'name': image_license}
         self.image_copyright = image_copyright
         self.image_abstract = image_abstract

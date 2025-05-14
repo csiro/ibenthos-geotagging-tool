@@ -4,8 +4,6 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtQuick.Controls
 import "Components" as Components
-// import QtLocation 6.8
-// import QtPositioning 5.5
 
 ApplicationWindow {
     visible: true
@@ -21,7 +19,6 @@ ApplicationWindow {
             id: parentLayout
             Layout.fillHeight: true
             Layout.fillWidth: true
-            // anchors.fill: parent
 
             ColumnLayout {
                 id: leftPane
@@ -245,44 +242,32 @@ ApplicationWindow {
                 Text {
                     id: siteDetailsTitle
                     width: middlePane.Layout.maximumWidth
-                    text: "Site details"
+                    text: "iFDO details"
                     visible: userInputModel.ifdoEnable
                 }
 
-                RowLayout {
-                    id: sitePointPrompt
-                    Layout.minimumWidth: parent.width
+                Components.ConfigTextBox {
+                    id: imageSetName
+                    label: "Image set name:"
+                    defaultValue: "Name for the image collection (i.e. site identification)"
+                    value: userInputModel.imageSetName
                     visible: userInputModel.ifdoEnable
-                    
-                    Text {
-                        id: sitePointText
-                        Layout.minimumWidth: parent.width*0.2
-                        text: "Site coordinates:"
-                    }
-
-                    TextField {
-                        id: siteLatitudeField
-                        Layout.minimumWidth: parent.width*0.25
-                        placeholderText: "Latitude"
-                        text: userInputModel.siteLatitude
+                    configValue {
                         onEditingFinished: {
-                            userInputModel.siteLatitude = siteLatitudeField.text
-                        }
-                        validator: RegularExpressionValidator { 
-                            regularExpression: /^[+-]?([0-9]*[.])?[0-9]+$/ 
+                            userInputModel.imageSetName = configValue.text
                         }
                     }
+                }
 
-                    TextField {
-                        id: siteLongitudeField
-                        Layout.minimumWidth: parent.width*0.25
-                        placeholderText: "Longitude"
-                        text: userInputModel.siteLongitude
+                Components.ConfigTextBox {
+                    id: imageContext
+                    label: "Context:"
+                    defaultValue: "Context of the collection (i.e. seagrass surveying in North Sulawesi)"
+                    value: userInputModel.imageContext
+                    visible: userInputModel.ifdoEnable
+                    configValue {
                         onEditingFinished: {
-                            userInputModel.siteLongitude = siteLongitudeField.text
-                        }
-                        validator: RegularExpressionValidator { 
-                            regularExpression: /^[+-]?([0-9]*[.])?[0-9]+$/ 
+                            userInputModel.imageContext = configValue.text
                         }
                     }
                 }
@@ -290,7 +275,7 @@ ApplicationWindow {
                 Components.ConfigTextBox {
                     id: projectName
                     label: "Project Name:"
-                    defaultValue: "iBenthos"
+                    defaultValue: "Over-arching project name (i.e. iBenthos)"
                     value: userInputModel.projectName
                     visible: userInputModel.ifdoEnable
                     configValue {
@@ -303,7 +288,7 @@ ApplicationWindow {
                 Components.ConfigTextBox {
                     id: campaignName
                     label: "Campaign Name:"
-                    defaultValue: "North Sulawesi 2023"
+                    defaultValue: "Name of the campaign (i.e. North Sulawesi June 2023)"
                     value: userInputModel.campaignName
                     visible: userInputModel.ifdoEnable
                     configValue {
@@ -314,88 +299,32 @@ ApplicationWindow {
                 }
 
                 Components.ConfigTextBox {
-                    id: siteID
-                    label: "Site ID:"
-                    defaultValue: "NS01"
-                    value: userInputModel.siteID
+                    id: piName
+                    label: "Principal Investigator's name:"
+                    defaultValue: "Jane Smith"
+                    widthRatio: 0.5
+                    value: userInputModel.piName
                     visible: userInputModel.ifdoEnable
                     configValue {
                         onEditingFinished: {
-                            userInputModel.siteID = configValue.text
-                        }
-                    }
-                }
-
-                Text {
-                    id: dataCollectionTitle
-                    width: middlePane.Layout.maximumWidth
-                    text: "Data collection details"
-                    visible: userInputModel.ifdoEnable
-                }
-
-                Components.ConfigDateTime {
-                    id: dataCollectionStartDateTime
-                    label: "Start time:"
-                    date: userInputModel.collectionStartDate
-                    time: userInputModel.collectionStartTime
-                    visible: userInputModel.ifdoEnable
-                    configDate {
-                        onEditingFinished: {
-                            userInputModel.collectionStartDate = configDate.text
-                        }
-                    }
-                    configTime {
-                        onEditingFinished: {
-                            userInputModel.collectionStartTime = configTime.text
-                        }
-                    }
-                }
-
-                Components.ConfigDateTime {
-                    id: dataCollectionEndDateTime
-                    label: "End time:"
-                    date: userInputModel.collectionEndDate
-                    time: userInputModel.collectionEndTime
-                    visible: userInputModel.ifdoEnable
-                    configDate {
-                        onEditingFinished: {
-                            userInputModel.collectionEndDate = configDate.text
-                        }
-                    }
-                    configTime {
-                        onEditingFinished: {
-                            userInputModel.collectionEndTime = configTime.text
+                            userInputModel.piName = configValue.text
                         }
                     }
                 }
 
                 Components.ConfigTextBox {
-                    id: cameraID
-                    label: "Camera ID:"
-                    defaultValue: "1"
-                    widthRatio: 0.7
-                    value: userInputModel.cameraID
+                    id: piORCID
+                    label: "PI's ORCID (optional):"
+                    defaultValue: "0000-0000-0000-0000"
+                    widthRatio: 0.5
+                    value: userInputModel.piORCID
                     visible: userInputModel.ifdoEnable
                     configValue {
                         onEditingFinished: {
-                            userInputModel.cameraID = configValue.text
-                        }
-                    }
-                }
-
-                Components.ConfigTextBox {
-                    id: distanceAG
-                    label: "Dist. above ground (m):"
-                    defaultValue: "0.8"
-                    widthRatio: 0.7
-                    value: userInputModel.distanceAboveGround
-                    visible: userInputModel.ifdoEnable
-                    configValue {
-                        onEditingFinished: {
-                            userInputModel.distanceAboveGround = configValue.text
+                            userInputModel.piORCID = configValue.text
                         }
                         validator: RegularExpressionValidator { 
-                            regularExpression: /^([0-9]*[.])?[0-9]+$/ 
+                            regularExpression: /^(\d{4})-(\d{4})-(\d{4})-(\d{3}[\dX])$/ 
                         }
                     }
                 }
@@ -426,14 +355,14 @@ ApplicationWindow {
                             userInputModel.collectorORCID = configValue.text
                         }
                         validator: RegularExpressionValidator { 
-                            regularExpression: /^(\d{4})-(\d{4})-(\d{4})-(\d{4})$/ 
+                            regularExpression: /^(\d{4})-(\d{4})-(\d{4})-(\d{3}[\dX])$/ 
                         }
                     }
                 }
 
                 Components.ConfigTextBox {
                     id: organisation
-                    label: "Organisation:"
+                    label: "Copyright owner:"
                     defaultValue: "University of the Sea"
                     widthRatio: 0.5
                     value: userInputModel.organisation
@@ -444,6 +373,65 @@ ApplicationWindow {
                         }
                     }
                 }
+
+                Components.ConfigTextBox {
+                    id: license
+                    label: "License:"
+                    defaultValue: "CC BY 4.0"
+                    widthRatio: 0.5
+                    value: userInputModel.license
+                    visible: userInputModel.ifdoEnable
+                    configValue {
+                        onEditingFinished: {
+                            userInputModel.license = configValue.text
+                        }
+                    }
+                }
+
+                Components.ConfigTextBox {
+                    id: distanceAG
+                    label: "Distance above ground (m):"
+                    defaultValue: "0.8"
+                    widthRatio: 0.7
+                    value: userInputModel.distanceAboveGround
+                    visible: userInputModel.ifdoEnable
+                    configValue {
+                        onEditingFinished: {
+                            userInputModel.distanceAboveGround = configValue.text
+                        }
+                        validator: RegularExpressionValidator { 
+                            regularExpression: /^([0-9]*[.])?[0-9]+$/ 
+                        }
+                    }
+                }
+
+                Components.ConfigTextBox {
+                    id: imageObjective
+                    label: "Image objective:"
+                    defaultValue: "Survey goal"
+                    widthRatio: 0.3
+                    value: userInputModel.imageObjective
+                    visible: userInputModel.ifdoEnable
+                    configValue {
+                        onEditingFinished: {
+                            userInputModel.imageObjective = configValue.text
+                        }
+                    }
+                }
+
+                Components.ConfigMultilineTextBox {
+                    id: imageAbstract
+                    label: "Image abstract:"
+                    defaultValue: "Description of the image set"
+                    value: userInputModel.imageAbstract
+                    visible: userInputModel.ifdoEnable
+                    configValue {
+                        onEditingFinished: {
+                            userInputModel.imageAbstract = configValue.text
+                        }
+                    }
+                }
+
             }
 
             ColumnLayout {
@@ -471,11 +459,6 @@ ApplicationWindow {
                         Layout.minimumWidth: parent.width*0.3
                         Layout.alignment: Qt.AlignHCenter
                         onClicked: {
-                            // if (userInputModel.validateForm()) {
-                            //     console.log("Form validated")
-                            // } else {
-                            //     console.log("Form not validated")
-                            // }
                             controller.geotag()
                         }
                     }
@@ -488,8 +471,6 @@ ApplicationWindow {
                     Layout.preferredHeight: rightPane.Layout.maximumHeight
                     clip: true
 
-                    // ScrollBar.vertical: ScrollBar { }
-                    // ScrollBar.horizontal: ScrollBar { }
                     TextArea {
                         id: feebackText
                         Layout.fillWidth: true

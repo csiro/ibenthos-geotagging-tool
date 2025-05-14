@@ -1,6 +1,6 @@
 
-
 import datetime
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -14,22 +14,21 @@ class UserInputModel(QObject):
     gpsDateChanged = pyqtSignal(str)
     gpsTimeChanged = pyqtSignal(str)
     gpsTimezoneIndexChanged = pyqtSignal(int)
-    ifdoEnableChanged = pyqtSignal(bool)
-    siteLatitudeChanged = pyqtSignal(str)
-    siteLongitudeChanged = pyqtSignal(str)
     exportDirectoryChanged = pyqtSignal(str)
+    ifdoEnableChanged = pyqtSignal(bool)
+    imageSetNameChanged = pyqtSignal(str)
+    imageContextChanged = pyqtSignal(str)
     projectNameChanged = pyqtSignal(str)
     campaignNameChanged = pyqtSignal(str)
-    siteIDChanged = pyqtSignal(str)
-    collectionStartDateChanged = pyqtSignal(str)
-    collectionStartTimeChanged = pyqtSignal(str)
-    collectionEndDateChanged = pyqtSignal(str)
-    collectionEndTimeChanged = pyqtSignal(str)
-    cameraIDChanged = pyqtSignal(str)
-    distanceAboveGroundChanged = pyqtSignal(str)
+    piNameChanged = pyqtSignal(str)
+    piORCIDChanged = pyqtSignal(str)
     collectorNameChanged = pyqtSignal(str)
     collectorORCIDChanged = pyqtSignal(str)
     organisationChanged = pyqtSignal(str)
+    licenseChanged = pyqtSignal(str)
+    distanceAboveGroundChanged = pyqtSignal(str)
+    imageObjectiveChanged = pyqtSignal(str)
+    imageAbstractChanged = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
@@ -39,22 +38,21 @@ class UserInputModel(QObject):
         self._gps_date = ""
         self._gps_time = ""
         self._gps_timezone_index = 0
-        self._site_lat = ""
-        self._site_lon = ""
         self._export_dir = ""
         self._ifdo_enable = False
+        self._image_set_name = ""
+        self._image_context = ""
         self._project_name = ""
         self._campaign_name = ""
-        self._site_id = ""
-        self._col_start_date = ""
-        self._col_start_time = ""
-        self._col_end_date = ""
-        self._col_end_time = ""
-        self._camera_id = ""
-        self._distance_above_ground = ""
+        self._pi_name = ""
+        self._pi_orcid = ""
         self._collector_name = ""
         self._collector_orcid = ""
         self._organisation = ""
+        self._license = ""
+        self._distance_above_ground = ""
+        self._image_objective = ""
+        self._image_abstract = ""
 
     @pyqtProperty(str, notify=importDirectoryChanged)
     def importDirectory(self):
@@ -129,32 +127,32 @@ class UserInputModel(QObject):
     @pyqtProperty(bool, notify=ifdoEnableChanged)
     def ifdoEnable(self):
         return self._ifdo_enable
-    
+
     @ifdoEnable.setter
     def ifdoEnable(self, enable):
         if self._ifdo_enable != enable:
             self._ifdo_enable = enable
             self.ifdoEnableChanged.emit(enable)
 
-    @pyqtProperty(str, notify=siteLatitudeChanged)
-    def siteLatitude(self):
-        return self._site_lat
+    @pyqtProperty(str, notify=imageSetNameChanged)
+    def imageSetName(self):
+        return self._image_set_name
 
-    @siteLatitude.setter
-    def siteLatitude(self, lat):
-        if self._site_lat != lat:
-            self._site_lat = lat
-            self.siteLatitudeChanged.emit(lat)
+    @imageSetName.setter
+    def imageSetName(self, image_set_name):
+        if self._image_set_name != image_set_name:
+            self._image_set_name = image_set_name
+            self.imageSetNameChanged.emit(image_set_name)
 
-    @pyqtProperty(str, notify=siteLongitudeChanged)
-    def siteLongitude(self):
-        return self._site_lon
+    @pyqtProperty(str, notify=imageContextChanged)
+    def imageContext(self):
+        return self._image_context
 
-    @siteLongitude.setter
-    def siteLongitude(self, lon):
-        if self._site_lon != lon:
-            self._site_lon = lon
-            self.siteLongitudeChanged.emit(lon)
+    @imageContext.setter
+    def imageContext(self, image_context):
+        if self._image_context != image_context:
+            self._image_context = image_context
+            self.imageContextChanged.emit(image_context)
 
     @pyqtProperty(str, notify=projectNameChanged)
     def projectName(self):
@@ -176,76 +174,26 @@ class UserInputModel(QObject):
             self._campaign_name = name
             self.campaignNameChanged.emit(name)
 
-    @pyqtProperty(str, notify=siteIDChanged)
-    def siteID(self):
-        return self._site_id
+    @pyqtProperty(str, notify=piNameChanged)
+    def piName(self):
+        return self._pi_name
 
-    @siteID.setter
-    def siteID(self, site_id):
-        if self._site_id != site_id:
-            self._site_id = site_id
-            self.siteIDChanged.emit(site_id)
+    @piName.setter
+    def piName(self, name):
+        if self._pi_name != name:
+            self._pi_name = name
+            self.piNameChanged.emit(name)
 
-    @pyqtProperty(str, notify=collectionStartDateChanged)
-    def collectionStartDate(self):
-        return self._col_start_date
+    @pyqtProperty(str, notify=piORCIDChanged)
+    def piORCID(self):
+        return self._pi_orcid
 
-    @collectionStartDate.setter
-    def collectionStartDate(self, date):
-        if self._col_start_date != date:
-            self._col_start_date = date
-            self.collectionStartDateChanged.emit(date)
+    @piORCID.setter
+    def piORCID(self, orcid):
+        if self._pi_orcid != orcid:
+            self._pi_orcid = orcid
+            self.piORCIDChanged.emit(orcid)
 
-    @pyqtProperty(str, notify=collectionStartTimeChanged)
-    def collectionStartTime(self):
-        return self._col_start_time
-
-    @collectionStartTime.setter
-    def collectionStartTime(self, time):
-        if self._col_start_time != time:
-            self._col_start_time = time
-            self.collectionStartTimeChanged.emit(time)
-
-    @pyqtProperty(str, notify=collectionEndDateChanged)
-    def collectionEndDate(self):
-        return self._col_end_date
-
-    @collectionEndDate.setter
-    def collectionEndDate(self, date):
-        if self._col_end_date != date:
-            self._col_end_date = date
-            self.collectionEndDateChanged.emit(date)
-
-    @pyqtProperty(str, notify=collectionEndTimeChanged)
-    def collectionEndTime(self):
-        return self._col_end_time
-
-    @collectionEndTime.setter
-    def collectionEndTime(self, time):
-        if self._col_end_time != time:
-            self._col_end_time = time
-            self.collectionEndTimeChanged.emit(time)
-
-    @pyqtProperty(str, notify=cameraIDChanged)
-    def cameraID(self):
-        return self._camera_id
-
-    @cameraID.setter
-    def cameraID(self, camera_id):
-        if self._camera_id != camera_id:
-            self._camera_id = camera_id
-            self.cameraIDChanged.emit(camera_id)
-
-    @pyqtProperty(str, notify=distanceAboveGroundChanged)
-    def distanceAboveGround(self):
-        return self._distance_above_ground
-
-    @distanceAboveGround.setter
-    def distanceAboveGround(self, distance):
-        if self._distance_above_ground != distance:
-            self._distance_above_ground = distance
-            self.distanceAboveGroundChanged.emit(distance)
-    
     @pyqtProperty(str, notify=collectorNameChanged)
     def collectorName(self):
         return self._collector_name
@@ -276,6 +224,46 @@ class UserInputModel(QObject):
             self._organisation = org
             self.organisationChanged.emit(org)
 
+    @pyqtProperty(str, notify=licenseChanged)
+    def license(self):
+        return self._license
+
+    @license.setter
+    def license(self, new_license):
+        if self._license != new_license:
+            self._license = new_license
+            self.licenseChanged.emit(new_license)
+
+    @pyqtProperty(str, notify=distanceAboveGroundChanged)
+    def distanceAboveGround(self):
+        return self._distance_above_ground
+
+    @distanceAboveGround.setter
+    def distanceAboveGround(self, distance):
+        if self._distance_above_ground != distance:
+            self._distance_above_ground = distance
+            self.distanceAboveGroundChanged.emit(distance)
+
+    @pyqtProperty(str, notify=imageObjectiveChanged)
+    def imageObjective(self):
+        return self._image_objective
+
+    @imageObjective.setter
+    def imageObjective(self, image_objective):
+        if self._image_objective != image_objective:
+            self._image_objective = image_objective
+            self.imageObjectiveChanged.emit(image_objective)
+
+    @pyqtProperty(str, notify=imageAbstractChanged)
+    def imageAbstract(self):
+        return self._image_abstract
+
+    @imageAbstract.setter
+    def imageAbstract(self, abstract):
+        if self._image_abstract != abstract:
+            self._image_abstract = abstract
+            self.imageAbstractChanged.emit(abstract)
+
     @pyqtSlot()
     def clearForm(self):
         self.importDirectory = ""
@@ -284,21 +272,21 @@ class UserInputModel(QObject):
         self.gpsDate = ""
         self.gpsTime = ""
         self.gpsTimezoneIndex = 0
-        self.siteLatitude = ""
-        self.siteLongitude = ""
         self.exportDirectory = ""
+        self.ifdoEnable = False
+        self.imageSetName = ""
+        self.imageContext = ""
         self.projectName = ""
         self.campaignName = ""
-        self.siteID = ""
-        self.collectionStartDate = ""
-        self.collectionStartTime = ""
-        self.collectionEndDate = ""
-        self.collectionEndTime = ""
-        self.cameraID = ""
-        self.distanceAboveGround = ""
+        self.piName = ""
+        self.piORCID = ""
         self.collectorName = ""
         self.collectorORCID = ""
         self.organisation = ""
+        self.license = ""
+        self.distanceAboveGround = ""
+        self.imageObjective = ""
+        self.imageAbstract = ""
 
     @pyqtSlot(result=bool)
     def validateForm(self):
@@ -318,7 +306,20 @@ class UserInputModelValidator:
             self._validate_gps_time : [model.gpsTime],
             self._validate_gps_timezone : [model.gpsTimezoneIndex],
             self._validate_output_directory : [model.exportDirectory],
-            self._validate_ifdo_enable : [model.ifdoEnable]
+            self._validate_ifdo_enable : [model.ifdoEnable],
+            self._validate_image_set_name : [model.ifdoEnable, model.imageSetName],
+            self._validate_image_context : [model.ifdoEnable, model.imageContext],
+            self._validate_project_name : [model.ifdoEnable, model.projectName],
+            self._validate_campaign_name : [model.ifdoEnable, model.campaignName],
+            self._validate_pi_name : [model.ifdoEnable, model.piName],
+            self._validate_pi_orcid : [model.ifdoEnable, model.piORCID],
+            self._validate_collectors_name : [model.ifdoEnable, model.collectorName],
+            self._validate_collectors_orcid : [model.ifdoEnable, model.collectorORCID],
+            self._validate_organisation : [model.ifdoEnable, model.organisation],
+            self._validate_license : [model.ifdoEnable, model.license],
+            self._validate_distance_above_ground : [model.ifdoEnable, model.distanceAboveGround],
+            self._validate_image_objective = [model.ifdoEnable, model.imageObjective],
+            self._validate_image_abstract: [model.ifdoEnable, model.imageAbstract],
         }
         errors = list({x(*y) for x, y in main_validators.items()})
         if len(errors) > 1:
@@ -386,10 +387,6 @@ class UserInputModelValidator:
     def _validate_gps_timezone(gps_tz: str) -> Optional[str]:
         if gps_tz < 0:
             return "GPS Timezone field is empty"
-        # try:
-        #     zoneinfo.ZoneInfo(self.model.gpsTimezoneIndex)
-        # except zoneinfo.ZoneInfoNotFoundError:
-        #     return "GPS Timezone field is not a valid timezone"
         return None
 
     @staticmethod
@@ -405,4 +402,86 @@ class UserInputModelValidator:
 
     @staticmethod
     def _validate_ifdo_enable(ifdo_enable: bool) -> Optional[str]:
+        return None
+
+    @staticmethod
+    def _validate_image_set_name(ifdo_enable: bool, image_set_name: str) -> Optional[str]:
+        if ifdo_enable and image_set_name == "":
+            return "Image set name is empty"
+        return None
+
+    @staticmethod
+    def _validate_image_context(ifdo_enable: bool, image_context: str) -> Optional[str]:
+        if ifdo_enable and image_context == "":
+            return "Image context is empty"
+        return None
+
+    @staticmethod
+    def _validate_project_name(ifdo_enable: bool, project_name: str) -> Optional[str]:
+        if ifdo_enable and project_name == "":
+            return "Project name is empty"
+        return None
+
+    @staticmethod
+    def _validate_campaign_name(ifdo_enable: bool, campaign_name: str) -> Optional[str]:
+        if ifdo_enable and campaign_name == "":
+            return "Campaign name is empty"
+        return None
+
+    @staticmethod
+    def _validate_pi_name(ifdo_enable: bool, pi_name: str) -> Optional[str]:
+        if ifdo_enable and pi_name == "":
+            return "PI name is empty"
+        return None
+
+    @staticmethod
+    def _validate_pi_orcid(ifdo_enable: bool, pi_orcid: str) -> Optional[str]:
+        if ifdo_enable and pi_orcid != "":
+            # ensure that ORCID is correct format
+            if not re.match(r"^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$", pi_orcid):
+                return "Principal Investigator ORCID is not in the correct format"
+        return None
+
+    @staticmethod
+    def _validate_collectors_name(ifdo_enable: bool, collectors_name: str) -> Optional[str]:
+        if ifdo_enable and collectors_name == "":
+            return "Collector's name is empty"
+        return None
+    
+    @staticmethod
+    def _validate_collectors_orcid(ifdo_enable: bool, collectors_orcid: str) -> Optional[str]:
+        if ifdo_enable and collectors_orcid != "":
+            # ensure that ORCID is correct format
+            if not re.match(r"^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$", collectors_orcid):
+                return "Collector's ORCID is not in the correct format"
+        return None
+
+    @staticmethod
+    def _validate_organisation(ifdo_enable: bool, organisation: str) -> Optional[str]:
+        if ifdo_enable and organisation == "":
+            return "Organisation is empty"
+        return None
+
+    @staticmethod
+    def _validate_license(ifdo_enable: bool, license: str) -> Optional[str]:
+        if ifdo_enable and license == "":
+            return "License is empty"
+        return None
+
+    @staticmethod
+    def _validate_distance_above_ground(ifdo_enable: bool, distance: str) -> Optional[str]:
+        if ifdo_enable and distance == "":
+            return "Distance above ground is empty"
+        try:
+            float(distance)
+        except ValueError:
+            return "Distance above ground is not a number"
+        return None
+
+    @staticmethod
+    def _validate_image_abstract(ifdo_enable: bool, image_abstract: str) -> Optional[str]:
+        return None
+
+    @staticmethod
+    def _validate_image_objective(ifdo_enable: bool, image_objective: str) -> Optional[str]:
         return None
