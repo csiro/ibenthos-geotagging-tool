@@ -13,7 +13,6 @@ ApplicationWindow {
     height: 600
     title: "iBenthos - PhotoTransect Tool"
     id: root
-    property bool ifdoEnable: false
 
     ColumnLayout {
         id: mainLayout
@@ -231,9 +230,8 @@ ApplicationWindow {
 
                 CheckBox {
                     text: "Export as an iFDO dataset"
-                    enabled: false
                     onToggled: {
-                        ifdoEnable = checked
+                        userInputModel.ifdoEnable = checked
                     }
                 }
             }
@@ -248,13 +246,13 @@ ApplicationWindow {
                     id: siteDetailsTitle
                     width: middlePane.Layout.maximumWidth
                     text: "Site details"
-                    visible: ifdoEnable
+                    visible: userInputModel.ifdoEnable
                 }
 
                 RowLayout {
                     id: sitePointPrompt
                     Layout.minimumWidth: parent.width
-                    visible: ifdoEnable
+                    visible: userInputModel.ifdoEnable
                     
                     Text {
                         id: sitePointText
@@ -294,7 +292,7 @@ ApplicationWindow {
                     label: "Project Name:"
                     defaultValue: "iBenthos"
                     value: userInputModel.projectName
-                    visible: ifdoEnable
+                    visible: userInputModel.ifdoEnable
                     configValue {
                         onEditingFinished: {
                             userInputModel.projectName = configValue.text
@@ -307,7 +305,7 @@ ApplicationWindow {
                     label: "Campaign Name:"
                     defaultValue: "North Sulawesi 2023"
                     value: userInputModel.campaignName
-                    visible: ifdoEnable
+                    visible: userInputModel.ifdoEnable
                     configValue {
                         onEditingFinished: {
                             userInputModel.campaignName = configValue.text
@@ -320,7 +318,7 @@ ApplicationWindow {
                     label: "Site ID:"
                     defaultValue: "NS01"
                     value: userInputModel.siteID
-                    visible: ifdoEnable
+                    visible: userInputModel.ifdoEnable
                     configValue {
                         onEditingFinished: {
                             userInputModel.siteID = configValue.text
@@ -332,7 +330,7 @@ ApplicationWindow {
                     id: dataCollectionTitle
                     width: middlePane.Layout.maximumWidth
                     text: "Data collection details"
-                    visible: ifdoEnable
+                    visible: userInputModel.ifdoEnable
                 }
 
                 Components.ConfigDateTime {
@@ -340,7 +338,7 @@ ApplicationWindow {
                     label: "Start time:"
                     date: userInputModel.collectionStartDate
                     time: userInputModel.collectionStartTime
-                    visible: ifdoEnable
+                    visible: userInputModel.ifdoEnable
                     configDate {
                         onEditingFinished: {
                             userInputModel.collectionStartDate = configDate.text
@@ -358,7 +356,7 @@ ApplicationWindow {
                     label: "End time:"
                     date: userInputModel.collectionEndDate
                     time: userInputModel.collectionEndTime
-                    visible: ifdoEnable
+                    visible: userInputModel.ifdoEnable
                     configDate {
                         onEditingFinished: {
                             userInputModel.collectionEndDate = configDate.text
@@ -377,7 +375,7 @@ ApplicationWindow {
                     defaultValue: "1"
                     widthRatio: 0.7
                     value: userInputModel.cameraID
-                    visible: ifdoEnable
+                    visible: userInputModel.ifdoEnable
                     configValue {
                         onEditingFinished: {
                             userInputModel.cameraID = configValue.text
@@ -391,7 +389,7 @@ ApplicationWindow {
                     defaultValue: "0.8"
                     widthRatio: 0.7
                     value: userInputModel.distanceAboveGround
-                    visible: ifdoEnable
+                    visible: userInputModel.ifdoEnable
                     configValue {
                         onEditingFinished: {
                             userInputModel.distanceAboveGround = configValue.text
@@ -408,7 +406,7 @@ ApplicationWindow {
                     defaultValue: "Jane Smith"
                     widthRatio: 0.5
                     value: userInputModel.collectorName
-                    visible: ifdoEnable
+                    visible: userInputModel.ifdoEnable
                     configValue {
                         onEditingFinished: {
                             userInputModel.collectorName = configValue.text
@@ -422,7 +420,7 @@ ApplicationWindow {
                     defaultValue: "0000-0000-0000-0000"
                     widthRatio: 0.5
                     value: userInputModel.collectorORCID
-                    visible: ifdoEnable
+                    visible: userInputModel.ifdoEnable
                     configValue {
                         onEditingFinished: {
                             userInputModel.collectorORCID = configValue.text
@@ -439,7 +437,7 @@ ApplicationWindow {
                     defaultValue: "University of the Sea"
                     widthRatio: 0.5
                     value: userInputModel.organisation
-                    visible: ifdoEnable
+                    visible: userInputModel.ifdoEnable
                     configValue {
                         onEditingFinished: {
                             userInputModel.organisation = configValue.text

@@ -1,0 +1,149 @@
+'''
+ifdo.py
+Module is a stop-gap replacement for marimba.
+'''
+import datetime
+import uuid
+from typing import Dict, List, Tuple
+
+import yaml
+
+
+class IFDOModel:
+    def __init__(self,
+        image_set_name: str,
+        image_context: str,
+        image_project: str,
+        image_event: str,
+        image_pi: Tuple[str, str],
+        image_creators: List[Tuple[str,str]],
+        image_copyright: str,
+        image_abstract: str,
+        image_objective: str,
+        image_altitude_meters: float = 0.0,
+        image_crs: str = "EPSG:4326",
+        image_uncertainty_meters: float = 10.0,
+        image_license: str = "CC BY 4.0",
+        image_acquisition: str = "photo",
+        image_quality: str = "processed",
+        image_deployment: str = "survey",
+        image_navigation: str = "satellite",
+        image_scale_redferece: str = "calibrated camera",
+        image_illumination: str = "sunlight",
+        image_pixel_magnitude: str = "mm",
+        image_marine_zone: str = "seafloor",
+        image_spectral_resolution: str = "rgb",
+        image_capture_mode: str = "manual",
+        image_fauna_attraction: str = "none",
+        image_area_square_meter: float = 0.5,
+        image_meters_above_ground: float = 0.9,
+        image_camera_yaw_degrees: float = 0.0,
+        image_camera_pitch_degrees: float = 90.0,
+        image_target_environment: str = "Shallow Benthic"
+    ):
+        self.image_set_uuid = str(uuid.uuid4())
+        self.images = {}
+
+        self.image_set_name = image_set_name
+        self.image_altitude_meters = image_altitude_meters
+        self.image_coordinate_reference_system = image_crs
+        self.image_coordinate_uncertainty_meters = image_uncertainty_meters
+        self.image_context = image_context
+        self.image_project = image_project
+        self.image_event = image_event
+        self.image_pi = {'name': image_pi[0], 'uri': image_pi[1]}
+        self.image_creators = [{'name': creator[0], 'uri': creator[1]} for creator in image_creators]
+        self.image_license = {'name': image_license}
+        self.image_copyright = image_copyright
+        self.image_abstract = image_abstract
+        self.image_acquisition = image_acquisition
+        self.image_quality = image_quality
+        self.image_deployment = image_deployment
+        self.image_navigation = image_navigation
+        self.image_scale_reference = image_scale_redferece
+        self.image_illumination = image_illumination
+        self.image_pixel_magnitude = image_pixel_magnitude
+        self.image_marine_zone = image_marine_zone
+        self.image_spectral_resolution = image_spectral_resolution
+        self.image_capture_mode = image_capture_mode
+        self.image_fauna_attraction = image_fauna_attraction
+        self.image_area_square_meter = image_area_square_meter
+        self.image_meters_above_ground = image_meters_above_ground
+        self.image_camera_yaw_degrees = image_camera_yaw_degrees
+        self.image_camera_pitch_degrees = image_camera_pitch_degrees
+        self.image_objective = image_objective
+        self.image_target_environment = image_target_environment
+
+
+        pass
+
+    def add_image_properties(
+        self,
+        image_relative_path: str,
+        image_datetime: datetime.datetime,
+        image_latitude: float,
+        image_longitude: float,
+        image_platform: str,
+        image_sensor: str,
+        image_hash_sha256: str,
+        image_entropy: float,
+        image_average_color: List[int]
+    ):
+        new_image = {}
+        new_image['image-datetime'] = image_datetime.astimezone(datetime.UTC).strftime('%Y-%m-%d %H:%M:%S.%f')
+        new_image['image-latitude'] = image_latitude
+        new_image['image-longitude'] = image_longitude
+        new_image['image-altitude-meters'] = self.image_altitude_meters
+        new_image['image-coordinate-reference-system'] = self.image_coordinate_reference_system
+        new_image['image-coordinate-uncertainty-meters'] = self.image_coordinate_uncertainty_meters
+        new_image['image-context'] = {'name': self.image_context}
+        new_image['image-project'] = {'name': self.image_project}
+        new_image['image-event'] = {'name': self.image_event}
+        new_image['image-platform'] = {'name': image_platform}
+        new_image['image-sensor'] = {'name': image_sensor}
+        new_image['image-uuid'] = str(uuid.uuid4())
+        new_image['image-hash-sha256'] = image_hash_sha256
+        new_image['image-pi'] = self.image_pi
+        new_image['image-creators'] = self.image_creators
+        new_image['image-license'] = self.image_license
+        new_image['image-copyright'] = self.image_copyright
+        new_image['image-abstract'] = self.image_abstract
+        new_image['image-acquisition'] = self.image_acquisition
+        new_image['image-quality'] = self.image_quality
+        new_image['image-deployment'] = self.image_deployment
+        new_image['image-navigation'] = self.image_navigation
+        new_image['image-scale-reference'] = self.image_scale_reference
+        new_image['image-illumination'] = self.image_illumination
+        new_image['image-pixel-magnitude'] = self.image_pixel_magnitude
+        new_image['image-marine-zone'] = self.image_marine_zone
+        new_image['image-spectral-resolution'] = self.image_spectral_resolution
+        new_image['image-capture-mode'] = self.image_capture_mode
+        new_image['image-fauna-attraction'] = self.image_fauna_attraction
+        new_image['image-area-square-meter'] = self.image_area_square_meter
+        new_image['image-meters-above-ground'] = self.image_meters_above_ground
+        new_image['image-camera-yaw-degrees'] = self.image_camera_yaw_degrees
+        new_image['image-camera-pitch-degrees'] = self.image_camera_pitch_degrees
+        new_image['image-objective'] = self.image_objective
+        new_image['image-target-environment'] = self.image_target_environment
+        new_image['image-entropy'] = image_entropy
+        new_image['image-average-color'] = image_average_color
+
+        self.images[image_relative_path] = [new_image]
+
+    def export_ifdo_dict(self) -> Dict:
+        output = {}
+        output['image-set-header'] = {}
+        output['image-set-header']['image-set-uuid'] = self.image_set_uuid
+        output['image-set-header']['image-set-name'] = self.image_set_name
+        output['image-set-header']['image-set-handle'] = ''
+        output['image-set-header']['image-set-ifdo-version'] = 'v2.1.0'
+        output['image-set-items'] = self.images
+        return output
+
+    def export_ifdo_yaml(self, output_path: str) -> None:
+        with open(output_path, 'w', encoding='utf-8') as f:
+            # Set up pyyaml to not use aliases
+            # https://stackoverflow.com/a/30682604
+            yaml.Dumper.ignore_aliases = lambda *args: True
+            yaml.dump(self.export_ifdo_dict(), f, allow_unicode=True, sort_keys=False,
+                      Dumper=yaml.Dumper)

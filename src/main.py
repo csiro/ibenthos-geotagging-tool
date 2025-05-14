@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 import logging
 import os
 import shutil
@@ -6,15 +7,19 @@ import sys
 import threading
 import zoneinfo
 from pathlib import Path
+from typing import Optional
 
 import gpxpy
+import numpy as np
 from exiftool import ExifToolHelper
 from geotag_pt import PhotoTransectGPSTagger
+from PIL import Image
 from PyQt6.QtCore import QObject, QThread, pyqtProperty, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QGuiApplication
 from PyQt6.QtQml import QQmlApplicationEngine
 
 import models
+from ifdo import IFDOModel
 
 logger = logging.getLogger(__name__)
 
@@ -27,15 +32,108 @@ def _get_images(directory: Path):
     file_list = list(directory.rglob("*"))
     return [file for file in file_list if file.suffix.lower() in extensions]
 
+
+
+def get_shannon_entropy(image_data: Image.Image) -> float:
+    """
+    Calculate the Shannon entropy of an image file.
+
+    Args:
+        image_data: The loaded image data.
+
+    Returns:
+        The Shannon entropy of the image as a float value.
+    """
+    # Convert to grayscale
+    grayscale_image = image_data.convert("L")
+
+    # Calculate the histogram
+    histogram = np.array(grayscale_image.histogram(), dtype=np.float32)
+
+    # Normalize the histogram to get probabilities
+    probabilities = histogram / histogram.sum()
+
+    # Filter out zero probabilities
+    probabilities = probabilities[probabilities > 0]
+
+    # Calculate Shannon entropy
+    entropy = -np.sum(probabilities * np.log2(probabilities))
+
+    return float(entropy)
+
+
+def get_average_image_color(image_data: Image.Image) -> tuple[int, ...]:
+    """
+    Calculate the average color of an image.
+
+    Args:
+        image_data: The loaded image data.
+
+    Returns:
+        A list of integers representing the average color of the image in RGB format. Each element in the list
+        corresponds to the average intensity of the Red, Green, and Blue channels, respectively.
+
+        Note: If the input image is None, None will be returned.
+    """
+    # Convert the image to numpy array
+    np_image = np.array(image_data)
+
+    # Calculate the average color for each channel
+    average_color = np.mean(np_image, axis=(0, 1))
+
+    return tuple(map(int, average_color))
+
+
 class GeotagWorker(QObject):
     progress = pyqtSignal(int, int)
-    finished = pyqtSignal()
+    finished = pyqtSignal(str)
 
-    def __init__(self, tagger: PhotoTransectGPSTagger, import_dir: Path, export_dir: Path):
+    def __init__(self, tagger: PhotoTransectGPSTagger, import_dir: Path, export_dir: Path,
+                       ifdo_model: Optional[IFDOModel] = None):
         super().__init__()
         self.tagger = tagger
         self.import_dir = import_dir
         self.export_dir = export_dir
+
+        self.ifdo_model = ifdo_model
+
+    def add_to_ifdo(self, relative_fn: str, exif_data: dict, gps_tags: dict):
+        image_datetime = datetime.datetime.strptime(f'{gps_tags["Exif:GPSDateStamp"]} {gps_tags["Exif:GPSTimeStamp"]}',
+                                                    '%Y:%m:%d %H:%M:%S').replace(tzinfo=datetime.UTC)
+        image_latitude = float(gps_tags["Composite:GPSPosition"].split(" ")[0])
+        image_longitude = float(gps_tags["Composite:GPSPosition"].split(" ")[1])
+
+        hasher = hashlib.sha256()
+
+        with open(self.import_dir / relative_fn, 'rb') as f:
+            while chunk := f.read(1_048_576):  # 1MB chunks
+                hasher.update(chunk)
+
+        image_hash_sha256 = hasher.hexdigest()
+
+        if 'EXIF:Make' in exif_data and 'EXIF:Model' in exif_data:
+            image_platform = f"{exif_data['EXIF:Make']} {exif_data['EXIF:Model']}"
+        else:
+            image_platform = "Unknown"
+        
+        with Image.open(self.import_dir / relative_fn) as img:
+            image_entropy = get_shannon_entropy(img)
+            image_average_color = get_average_image_color(img)
+        
+        self.ifdo_model.add_image_properties(
+            image_relative_path=str(relative_fn),
+            image_datetime=image_datetime,
+            image_latitude=image_latitude,
+            image_longitude=image_longitude,
+            image_platform=image_platform,
+            image_sensor="Unknown",
+            image_hash_sha256=image_hash_sha256,
+            image_entropy=image_entropy,
+            image_average_color=[*image_average_color]
+        )
+        
+
+
 
     def run(self):
         # Get images to be tagged
@@ -46,6 +144,7 @@ class GeotagWorker(QObject):
         tally = 0
         with ExifToolHelper() as et:
             for image_fn in image_list:
+                relative_fn = image_fn.relative_to(self.import_dir)
                 exif_data = et.get_metadata(str(image_fn))[0]
                 try:
                     gps_tags = self.tagger.generate_gps_tags(exif_data)
@@ -60,18 +159,24 @@ class GeotagWorker(QObject):
                         "Image %s does not contain time data. Skipping this image.", image_fn
                     )
                     continue
-                save_fn = self.export_dir / image_fn.relative_to(self.import_dir)
+                save_fn = self.export_dir / relative_fn
                 save_fn.parent.mkdir(parents=True, exist_ok=True)
                 if not save_fn.parent.exists():
                     logger.error("Failed to create directory %s", save_fn.parent)
                     continue
                 shutil.copy2(image_fn, save_fn)
                 et.set_tags(files=save_fn, tags=gps_tags, params=['-overwrite_original'])
+                if self.ifdo_model is not None:
+                    self.add_to_ifdo(relative_fn, exif_data, gps_tags)
                 logger.info("Image %s geotagged and saved to %s", image_fn, save_fn)
                 tally += 1
                 self.progress.emit(tally, total_images)
-        self.finished.emit()
-
+        # Save the IFDO model to a file
+        if self.ifdo_model is not None:
+            ifdo_path = self.export_dir / "ifdo.yml"
+            self.ifdo_model.export_ifdo_yaml(str(ifdo_path))
+            logger.info("IFDO file saved to %s", ifdo_path)
+        self.finished.emit("Finished geotagging images.")
 
 
 class MainController(QObject):
@@ -163,15 +268,26 @@ class MainController(QObject):
             jpg_gps_timestamp
         )
 
+        # Create the IFDO model
+        self._feedback.addFeedbackLine(f"{self._model.ifdoEnable}\n")
+        if self._model.ifdoEnable:
+            ifdo_model = IFDOModel("test_set", "iBenthos", "test_project", "test_event",
+                                   ("Brendan Do", "0000-0000-0000-0000"),
+                                   [("Brendan Do", "0000-0000-0000-0000")],
+                                   "CSIRO", "Photos for testing", "Photos for testing")
+        else:
+            ifdo_model = None
+
         # Create new worker thread
         self._workerthread = QThread()
         import_dir = Path(self._model.importDirectory.replace("file://", ""))
         export_dir = Path(self._model.exportDirectory.replace("file://", ""))
-        self._worker = GeotagWorker(tagger, import_dir, export_dir)
+        self._worker = GeotagWorker(tagger, import_dir, export_dir, ifdo_model=ifdo_model)
         self._worker.moveToThread(self._workerthread)
         self._workerthread.started.connect(self._worker.run)
         self._worker.progress.connect(self._feedback.updateProgress)
         self._worker.finished.connect(self._workerthread.quit)
+        self._worker.finished.connect(self._feedback.addFeedbackLine)
         self._worker.finished.connect(self._worker.deleteLater)
         self._workerthread.finished.connect(self._workerthread.deleteLater)
         self._workerthread.start()
