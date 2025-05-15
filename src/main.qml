@@ -249,7 +249,7 @@ ApplicationWindow {
                 Components.ConfigTextBox {
                     id: imageSetName
                     label: "Image set name:"
-                    defaultValue: "Name for the image collection (i.e. site identification)"
+                    defaultValue: "i.e. date and site identification"
                     value: userInputModel.imageSetName
                     visible: userInputModel.ifdoEnable
                     configValue {
@@ -262,7 +262,7 @@ ApplicationWindow {
                 Components.ConfigTextBox {
                     id: imageContext
                     label: "Context:"
-                    defaultValue: "Context of the collection (i.e. seagrass surveying in North Sulawesi)"
+                    defaultValue: "i.e. seagrass surveying in North Sulawesi"
                     value: userInputModel.imageContext
                     visible: userInputModel.ifdoEnable
                     configValue {
@@ -275,7 +275,7 @@ ApplicationWindow {
                 Components.ConfigTextBox {
                     id: projectName
                     label: "Project Name:"
-                    defaultValue: "Over-arching project name (i.e. iBenthos)"
+                    defaultValue: "i.e. iBenthos"
                     value: userInputModel.projectName
                     visible: userInputModel.ifdoEnable
                     configValue {
@@ -288,7 +288,7 @@ ApplicationWindow {
                 Components.ConfigTextBox {
                     id: campaignName
                     label: "Campaign Name:"
-                    defaultValue: "Name of the campaign (i.e. North Sulawesi June 2023)"
+                    defaultValue: "i.e. North Sulawesi June 2023"
                     value: userInputModel.campaignName
                     visible: userInputModel.ifdoEnable
                     configValue {
@@ -459,6 +459,28 @@ ApplicationWindow {
                         Layout.minimumWidth: parent.width*0.3
                         Layout.alignment: Qt.AlignHCenter
                         onClicked: {
+                            // This ensures that the text fields have been loaded into the model
+                            // before the geotagging process starts
+                            var editable_fields = [
+                                gpsDateTime.configDate,
+                                gpsDateTime.configTime,
+                                imageSetName.configValue,
+                                imageContext.configValue,
+                                projectName.configValue,
+                                campaignName.configValue,
+                                piName.configValue,
+                                piORCID.configValue,
+                                collectorName.configValue,
+                                collectorORCID.configValue,
+                                organisation.configValue,
+                                license.configValue,
+                                distanceAG.configValue,
+                                imageObjective.configValue,
+                                imageAbstract.configValue
+                            ]
+                            editable_fields.forEach( (x) => {
+                                x.editingFinished()
+                            });
                             controller.geotag()
                         }
                     }
