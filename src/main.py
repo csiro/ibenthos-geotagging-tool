@@ -89,13 +89,14 @@ class GeotagWorker(QObject):
     finished = pyqtSignal(str)
 
     def __init__(self, tagger: PhotoTransectGPSTagger, import_dir: Path, export_dir: Path,
-                       ifdo_model: Optional[IFDOModel] = None):
+                       ifdo_model: Optional[IFDOModel] = None, exec_path: Optional[str] = None):
         super().__init__()
         self.tagger = tagger
         self.import_dir = import_dir
         self.export_dir = export_dir
 
         self.ifdo_model = ifdo_model
+        self.exec_path = exec_path
 
     def add_to_ifdo(self, relative_fn: str, exif_data: dict, gps_tags: dict):
         image_datetime = datetime.datetime.strptime(f'{gps_tags["Exif:GPSDateStamp"]} {gps_tags["Exif:GPSTimeStamp"]}',
@@ -139,7 +140,7 @@ class GeotagWorker(QObject):
         total_images = len(image_list)
 
         tally = 0
-        with ExifToolHelper() as et:
+        with ExifToolHelper(executable=self.exec_path) as et:
             for image_fn in image_list:
                 relative_fn = image_fn.relative_to(self.import_dir)
                 exif_data = et.get_metadata(str(image_fn))[0]
@@ -177,7 +178,7 @@ class GeotagWorker(QObject):
 
 class MainController(QObject):
     def __init__(self, model: models.UserInputModel, config: models.ConfigModel,
-                       feedback: models.FeedbackModel):
+                       feedback: models.FeedbackModel, exec_path: Optional[str] = None):
         super().__init__()
         self._model = model
         self._config = config
@@ -185,6 +186,7 @@ class MainController(QObject):
         self._feedback = feedback
         self._worker = None
         self._workerthread = None
+        self._exec_path = exec_path
 
     # Slot used to average the GPX file data to provide an estimated site location
     @pyqtSlot(str)
@@ -259,7 +261,8 @@ class MainController(QObject):
         tagger = PhotoTransectGPSTagger.from_files(
             self._model.gpxFilepath.replace("file://", ""),
             self._model.gpsPhotoFilepath.replace("file://", ""),
-            jpg_gps_timestamp
+            jpg_gps_timestamp,
+            exiftool_path=self._exec_path
         )
 
         # Create the IFDO model
@@ -282,7 +285,8 @@ class MainController(QObject):
         self._workerthread = QThread()
         import_dir = Path(self._model.importDirectory.replace("file://", ""))
         export_dir = Path(self._model.exportDirectory.replace("file://", ""))
-        self._worker = GeotagWorker(tagger, import_dir, export_dir, ifdo_model=ifdo_model)
+        self._worker = GeotagWorker(tagger, import_dir, export_dir, ifdo_model=ifdo_model,
+                                    exec_path=self._exec_path)
         self._worker.moveToThread(self._workerthread)
         self._workerthread.started.connect(self._worker.run)
         self._worker.progress.connect(self._feedback.updateProgress)
@@ -301,13 +305,17 @@ if __name__ == "__main__":
     user_input_model = models.UserInputModel()
     config_model = models.ConfigModel()
     feedback_model = models.FeedbackModel()
-    controller = MainController(user_input_model, config_model, feedback_model)
 
     # Determine if we're a package or running as a script
     if getattr(sys, "frozen", False):
         app_path = Path(sys._MEIPASS)
+        exiftool_path = str(app_path / "bin" / "exiftool")
     else:
         app_path = Path(os.path.dirname(os.path.realpath(__file__)))
+        exiftool_path = None
+
+    controller = MainController(user_input_model, config_model, feedback_model,
+                                exec_path=exiftool_path)
 
     engine.rootContext().setContextProperty("userInputModel", user_input_model)
     engine.rootContext().setContextProperty("configModel", config_model)

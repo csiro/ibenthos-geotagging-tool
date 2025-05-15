@@ -4,7 +4,7 @@
 a = Analysis(
     ['src/main.py'],
     pathex=[],
-    binaries=[('Image-ExifTool-13.29/exiftool', 'bin/exiftool'), ('Image-ExifTool-13.29/lib', 'bin/lib')],
+    binaries=[('Image-ExifTool-13.29/exiftool', 'bin'), ('Image-ExifTool-13.29/lib', 'bin/lib')],
     datas=[('src/main.qml', '.'), ('src/Components', 'Components')],
     hiddenimports=[],
     hookspath=[],
@@ -26,7 +26,7 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=True,
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
@@ -43,7 +43,6 @@ coll = COLLECT(
     upx_exclude=[],
     name='iBenthos Geotagging Tool',
 )
-
 app = BUNDLE(
     coll,
     name='iBenthos Geotagging Tool.app',
