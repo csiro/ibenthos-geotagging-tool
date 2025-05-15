@@ -318,8 +318,8 @@ class UserInputModelValidator:
             self._validate_organisation : [model.ifdoEnable, model.organisation],
             self._validate_license : [model.ifdoEnable, model.license],
             self._validate_distance_above_ground : [model.ifdoEnable, model.distanceAboveGround],
-            self._validate_image_objective = [model.ifdoEnable, model.imageObjective],
-            self._validate_image_abstract: [model.ifdoEnable, model.imageAbstract],
+            self._validate_image_objective : [model.ifdoEnable, model.imageObjective],
+            self._validate_image_abstract : [model.ifdoEnable, model.imageAbstract],
         }
         errors = list({x(*y) for x, y in main_validators.items()})
         if len(errors) > 1:
@@ -459,7 +459,7 @@ class UserInputModelValidator:
     @staticmethod
     def _validate_organisation(ifdo_enable: bool, organisation: str) -> Optional[str]:
         if ifdo_enable and organisation == "":
-            return "Organisation is empty"
+            return "Copyright owner is empty"
         return None
 
     @staticmethod
@@ -470,12 +470,13 @@ class UserInputModelValidator:
 
     @staticmethod
     def _validate_distance_above_ground(ifdo_enable: bool, distance: str) -> Optional[str]:
-        if ifdo_enable and distance == "":
-            return "Distance above ground is empty"
-        try:
-            float(distance)
-        except ValueError:
-            return "Distance above ground is not a number"
+        if ifdo_enable:
+            if distance == "":
+                return "Distance above ground is empty"
+            try:
+                float(distance)
+            except ValueError:
+                return "Distance above ground is not a number"
         return None
 
     @staticmethod
