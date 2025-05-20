@@ -6,11 +6,12 @@ authors = ["Brendan Do <brendan.do@csiro.au>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.11,<3.14"
 pyqt6 = "^6.8.1"
 geotag-pt = {git = "ssh://git@bitbucket.csiro.au:7999/visage/geotag_pt.git", rev = "main"}
 pyexiftool = "^0.5.6"
 pyyaml = "^6.0.2"
+pyinstaller = "^6.13.0"
 
 
 [build-system]

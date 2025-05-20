@@ -150,10 +150,16 @@ class GeotagWorker(QObject):
                     logger.error(
                         "Image %s not within range of GPX file. Skipping this image.", image_fn
                     )
+                    self.finished.emit(
+                        "Image %s not within range of GPX file. Skipping this image.", image_fn
+                    )
                     logger.error(e)
                     continue
                 except AssertionError as _:
                     logger.error(
+                        "Image %s does not contain time data. Skipping this image.", image_fn
+                    )
+                    self.finished.emit(
                         "Image %s does not contain time data. Skipping this image.", image_fn
                     )
                     continue
@@ -256,8 +262,14 @@ class MainController(QObject):
         jpg_gps_timestamp = datetime.datetime.fromisoformat(
             self._model.gpsDate + " " + self._model.gpsTime
         )
-        jpg_gps_timestamp = jpg_gps_timestamp.replace(tzinfo=zoneinfo.ZoneInfo(
-            self._config.gpsTimezoneOptions[self._model.gpsTimezoneIndex]))
+        if self._config.useWorkaround:
+            jpg_gps_timestamp = jpg_gps_timestamp.replace(tzinfo=models.TimezoneWorkaround(
+                self._config.gpsTimezoneOptions[self._model.gpsTimezoneIndex])
+            )
+        else:
+            jpg_gps_timestamp = jpg_gps_timestamp.replace(tzinfo=zoneinfo.ZoneInfo(
+                self._config.gpsTimezoneOptions[self._model.gpsTimezoneIndex])
+            )
         tagger = PhotoTransectGPSTagger.from_files(
             self._model.gpxFilepath.replace("file://", ""),
             self._model.gpsPhotoFilepath.replace("file://", ""),
@@ -323,6 +335,8 @@ if __name__ == "__main__":
     engine.rootContext().setContextProperty("controller", controller)
     config_model.initialise()
     engine.load((app_path / "main.qml").as_uri())
+
+    print("Finished loading")
 
     if not engine.rootObjects():
         sys.exit(-1)

@@ -1,12 +1,18 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import collect_all
 
+datas = [('src/main.qml', '.'), ('src/Components', 'Components')]
+binaries = [('Image-ExifTool-13.29/exiftool', 'bin'), ('Image-ExifTool-13.29/lib', 'bin/lib')]
+hiddenimports = []
+tmp_ret = collect_all('dateutil')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 a = Analysis(
     ['src/main.py'],
     pathex=[],
-    binaries=[('Image-ExifTool-13.29/exiftool', 'bin'), ('Image-ExifTool-13.29/lib', 'bin/lib')],
-    datas=[('src/main.qml', '.'), ('src/Components', 'Components')],
-    hiddenimports=[],
+    binaries=binaries,
+    datas=datas,
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
