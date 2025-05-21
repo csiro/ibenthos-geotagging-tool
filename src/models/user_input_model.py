@@ -49,7 +49,7 @@ class UserInputModel(QObject):
         self._collector_name = ""
         self._collector_orcid = ""
         self._organisation = ""
-        self._license = ""
+        self._license = "CC BY 4.0"
         self._distance_above_ground = ""
         self._image_objective = ""
         self._image_abstract = ""
@@ -283,7 +283,7 @@ class UserInputModel(QObject):
         self.collectorName = ""
         self.collectorORCID = ""
         self.organisation = ""
-        self.license = ""
+        self.license = "CC BY 4.0"
         self.distanceAboveGround = ""
         self.imageObjective = ""
         self.imageAbstract = ""
@@ -320,6 +320,7 @@ class UserInputModelValidator:
             self._validate_distance_above_ground : [model.ifdoEnable, model.distanceAboveGround],
             self._validate_image_objective : [model.ifdoEnable, model.imageObjective],
             self._validate_image_abstract : [model.ifdoEnable, model.imageAbstract],
+            self._validate_input_path_not_output_path: [model.importDirectory,model.exportDirectory]
         }
         errors = list({x(*y) for x, y in main_validators.items()})
         if len(errors) > 1:
@@ -485,4 +486,10 @@ class UserInputModelValidator:
 
     @staticmethod
     def _validate_image_objective(ifdo_enable: bool, image_objective: str) -> Optional[str]:
+        return None
+
+    @staticmethod
+    def _validate_input_path_not_output_path(input_path: str, output_path: str) -> Optional[str]:
+        if input_path == output_path:
+            return "Input directory and output directory cannot be the same"
         return None

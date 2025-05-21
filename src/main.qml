@@ -391,7 +391,7 @@ ApplicationWindow {
                 Components.ConfigTextBox {
                     id: distanceAG
                     label: "Distance above ground (m):"
-                    defaultValue: "0.8"
+                    defaultValue: "i.e. 0.8"
                     widthRatio: 0.7
                     value: userInputModel.distanceAboveGround
                     visible: userInputModel.ifdoEnable
@@ -408,7 +408,7 @@ ApplicationWindow {
                 Components.ConfigTextBox {
                     id: imageObjective
                     label: "Image objective:"
-                    defaultValue: "Survey goal"
+                    defaultValue: "Goal of the survey"
                     widthRatio: 0.3
                     value: userInputModel.imageObjective
                     visible: userInputModel.ifdoEnable
