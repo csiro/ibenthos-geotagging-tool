@@ -4,3 +4,4 @@ poetry.lock
 __pycache__/
 *.pyc
 .DS_Store
+x86_build/
