@@ -1,5 +1,7 @@
-from PySide6.QtCore import QRegularExpression, Qt, Signal
-from PySide6.QtGui import QRegularExpressionValidator, QTextOption
+import os
+
+from PySide6.QtCore import QRegularExpression, QSize, Qt, Signal, Slot
+from PySide6.QtGui import QPixmap, QRegularExpressionValidator, QTextOption
 from PySide6.QtWidgets import (QFileDialog, QHBoxLayout, QLabel, QLineEdit,
                                QPushButton, QScrollArea, QSizePolicy,
                                QTextEdit, QVBoxLayout, QWidget)
@@ -18,13 +20,11 @@ class ConfigDateTime(QWidget):
 
         # Label (equivalent to QML Text with id=configName)
         self.configName = QLabel("Label", self)
-        self.configName.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         layout.addWidget(self.configName, int(self.width_ratio * 100))
 
         # Date Field (QLineEdit with validator)
         self.configDate = QLineEdit(self)
         self.configDate.setPlaceholderText("YYYY-MM-DD")
-        self.configDate.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         date_regex = QRegularExpression(
             r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
         )
@@ -35,7 +35,6 @@ class ConfigDateTime(QWidget):
         # Time Field (QLineEdit with validator)
         self.configTime = QLineEdit(self)
         self.configTime.setPlaceholderText("HH:MM:SS")
-        self.configTime.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         time_regex = QRegularExpression(
             r"^(0?[0-9]|1[0-9]|2[0-3]):([0-5]?[0-9]):([0-5]?[0-9])$"
         )
@@ -84,7 +83,6 @@ class ConfigMultilineTextBox(QWidget):
         # Label (configName)
         self.configName = QLabel("Label", self)
         self.configName.setMinimumHeight(25)
-        self.configName.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layout.addWidget(self.configName)
 
         # Text Area inside Scroll Area (configValue)
@@ -93,7 +91,6 @@ class ConfigMultilineTextBox(QWidget):
         self.configValue.setPlaceholderText("Default")
         self.configValue.setMinimumHeight(75)
         self.configValue.setMaximumHeight(75)
-        self.configValue.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         scroll_area = QScrollArea(self)
         scroll_area.setWidgetResizable(True)
@@ -102,7 +99,6 @@ class ConfigMultilineTextBox(QWidget):
         scroll_area.setWidget(self.configValue)
         scroll_area.setMinimumHeight(75)
         scroll_area.setMaximumHeight(75)
-        scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         layout.addWidget(scroll_area)
 
@@ -146,13 +142,11 @@ class ConfigTextBox(QWidget):
 
         # Label (configName)
         self.configName = QLabel("Label", self)
-        self.configName.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         layout.addWidget(self.configName, int(self.width_ratio * 100))
 
         # Text Field (configValue)
         self.configValue = QLineEdit(self)
         self.configValue.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.configValue.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         layout.addWidget(self.configValue, int((1 - self.width_ratio) * 100))
 
         self.setLayout(layout)
@@ -198,7 +192,6 @@ class ConfigDirectory(QWidget):
 
         # Label
         self.inputTextField = QLabel(label_text + ": ", self)
-        self.inputTextField.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         layout.addWidget(self.inputTextField, int(self.width_ratio * 100))
 
         # Read-only TextField for selected path
@@ -207,12 +200,10 @@ class ConfigDirectory(QWidget):
         self.importDirPathField.setReadOnly(True)
         self.importDirPathField.setText(default_path)
         self.importDirPathField.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.importDirPathField.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         layout.addWidget(self.importDirPathField, int((1 - self.width_ratio - 0.1) * 100))
 
         # Browse Button
         self.browseButton = QPushButton("Browse", self)
-        self.browseButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.browseButton.clicked.connect(self.openFolderDialog)
         layout.addWidget(self.browseButton, 10)
 
@@ -255,7 +246,6 @@ class ConfigFileSelector(QWidget):
 
         # Label
         self.gpsPhotoTextField = QLabel(self._label_text + ": ", self)
-        self.gpsPhotoTextField.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         layout.addWidget(self.gpsPhotoTextField, int(self.width_ratio * 100))
 
         # Read-only file path field
@@ -264,12 +254,10 @@ class ConfigFileSelector(QWidget):
         self.gpsPhotoPathField.setReadOnly(True)
         self.gpsPhotoPathField.setText(default_path)
         self.gpsPhotoPathField.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.gpsPhotoPathField.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         layout.addWidget(self.gpsPhotoPathField, int((1 - self.width_ratio - 0.1) * 100))
 
         # Browse button
         self.browseButton = QPushButton("Browse", self)
-        self.browseButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.browseButton.clicked.connect(self.openFileDialog)
         layout.addWidget(self.browseButton, 10)
 
@@ -295,6 +283,40 @@ class ConfigFileSelector(QWidget):
     def value(self, path):
         self.selectedFile = path
         self.gpsPhotoPathField.setText(path)
+
+class ImagePreview(QLabel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setFixedSize(QSize(300, 300))
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.setScaledContents(False)  # Prevents stretching, we'll scale manually
+
+        self._filepath = None
+
+    @Slot(str)
+    def setFilepath(self, path):
+        if not os.path.isfile(path):
+            self.clear()
+            self.setText("Image not found")
+            return
+
+        self._filepath = path
+        pixmap = QPixmap(path)
+        if not pixmap.isNull():
+            scaled = pixmap.scaled(
+                self.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+            )
+            self.setPixmap(scaled)
+        else:
+            self.setText("Invalid image")
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # Re-scale image when resized
+        if self._filepath and os.path.isfile(self._filepath):
+            self.setFilepath(self._filepath)
 
 
 if __name__ == "__main__":
@@ -339,6 +361,13 @@ if __name__ == "__main__":
 
     layout.addWidget(widget)
 
+
+    image_preview = ImagePreview()
+    layout.addWidget(image_preview)
+
+    img_browse = ConfigFileSelector(label_text="GPS Photo")
+    img_browse.fileSelected.connect(image_preview.setFilepath)
+    layout.addWidget(img_browse)
 
     main_window.setLayout(layout)
     main_window.show()
