@@ -151,7 +151,7 @@ class GeotagWorker(QObject):
                         "Image %s not within range of GPX file. Skipping this image.", image_fn
                     )
                     self.finished.emit(
-                        "Image %s not within range of GPX file. Skipping this image.", image_fn
+                        f"Image {image_fn} not within range of GPX file. Skipping this image."
                     )
                     logger.error(e)
                     continue
@@ -160,7 +160,7 @@ class GeotagWorker(QObject):
                         "Image %s does not contain time data. Skipping this image.", image_fn
                     )
                     self.finished.emit(
-                        "Image %s does not contain time data. Skipping this image.", image_fn
+                        f"Image {image_fn} does not contain time data. Skipping this image."
                     )
                     continue
                 save_fn = self.export_dir / relative_fn
