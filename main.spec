@@ -35,10 +35,10 @@ exe = EXE(
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
-    target_arch=None,
+    target_arch='x86_64',
     codesign_identity=None,
     entitlements_file=None,
-    icon='logo.png',
+    icon='logo.icns',
 )
 coll = COLLECT(
     exe,
@@ -52,6 +52,6 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name='iBenthos Geotagging Tool.app',
-    icon='logo.png',
+    icon='logo.icns',
     bundle_identifier=None,
 )
