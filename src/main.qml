@@ -9,7 +9,7 @@ ApplicationWindow {
     visible: true
     width: 1200
     height: 600
-    title: "iBenthos - PhotoTransect Tool"
+    title: "iBenthos - PhotoTransect Tool build " + configModel.buildHash
     id: root
 
     ColumnLayout {

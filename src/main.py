@@ -322,8 +322,16 @@ if __name__ == "__main__":
 
     # Determine if we're a package or running as a script
     if getattr(sys, "frozen", False):
+        logger.info("Running as a package")
         app_path = Path(sys._MEIPASS)
         exiftool_path = str(app_path / "bin" / "exiftool")
+        build_id_path = app_path / "build_id.txt"
+        if build_id_path.exists():
+            with open(build_id_path, "r") as f:
+                config_model.buildHash = f.read().strip()
+            logger.info("Build ID: %s", config_model.buildHash)
+        else:
+            logger.warning("Build ID file not found.")
     else:
         app_path = Path(os.path.dirname(os.path.realpath(__file__)))
         exiftool_path = None
@@ -338,7 +346,6 @@ if __name__ == "__main__":
     config_model.initialise()
     engine.load((app_path / "main.qml").as_uri())
 
-    print("Finished loading")
 
     if not engine.rootObjects():
         sys.exit(-1)

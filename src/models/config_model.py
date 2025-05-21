@@ -11,6 +11,7 @@ class ConfigModel(QObject):
     def __init__(self):
         super().__init__()
         self._gps_timezone_options = []
+        self._build_hash = "0"
         self._use_workaround = False
 
     @pyqtProperty(list, notify=gpsTimezoneOptionsChanged)
@@ -22,7 +23,15 @@ class ConfigModel(QObject):
         if self._gps_timezone_options != options:
             self._gps_timezone_options = options
             self.gpsTimezoneOptionsChanged.emit(options)
-
+    
+    @pyqtProperty(str)
+    def buildHash(self):
+        return self._build_hash
+    
+    @buildHash.setter
+    def buildHash(self, value):
+        if self._build_hash != value:
+            self._build_hash = value
 
     @pyqtProperty(bool)
     def useWorkaround(self):
