@@ -86,6 +86,7 @@ def get_average_image_color(image_data: Image.Image) -> tuple[int, ...]:
 
 class GeotagWorker(QObject):
     progress = pyqtSignal(int, int)
+    error_msgs = pyqtSignal(str)
     finished = pyqtSignal(str)
 
     def __init__(self, tagger: PhotoTransectGPSTagger, import_dir: Path, export_dir: Path,
@@ -150,8 +151,8 @@ class GeotagWorker(QObject):
                     logger.error(
                         "Image %s not within range of GPX file. Skipping this image.", image_fn
                     )
-                    self.finished.emit(
-                        "Image %s not within range of GPX file. Skipping this image.", image_fn
+                    self.error_msgs.emit(
+                        f"Image {image_fn} not within range of GPX file. Skipping this image."
                     )
                     logger.error(e)
                     continue
@@ -159,8 +160,8 @@ class GeotagWorker(QObject):
                     logger.error(
                         "Image %s does not contain time data. Skipping this image.", image_fn
                     )
-                    self.finished.emit(
-                        "Image %s does not contain time data. Skipping this image.", image_fn
+                    self.error_msgs.emit(
+                        f"Image {image_fn} does not contain time data. Skipping this image."
                     )
                     continue
                 save_fn = self.export_dir / relative_fn
@@ -303,6 +304,7 @@ class MainController(QObject):
         self._workerthread.started.connect(self._worker.run)
         self._worker.progress.connect(self._feedback.updateProgress)
         self._worker.finished.connect(self._workerthread.quit)
+        self._worker.error_msgs.connect(self._feedback.addFeedbackLine)
         self._worker.finished.connect(self._feedback.addFeedbackLine)
         self._worker.finished.connect(self._worker.deleteLater)
         self._workerthread.finished.connect(self._workerthread.deleteLater)
