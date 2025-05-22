@@ -4,26 +4,22 @@ import logging
 import os
 import shutil
 import sys
-import threading
 import zoneinfo
 from pathlib import Path
 from typing import Optional
 
-import gpxpy
 import numpy as np
 from exiftool import ExifToolHelper
 from geotag_pt import PhotoTransectGPSTagger
 from PIL import Image
-from PyQt6.QtCore import QObject, QThread, pyqtProperty, pyqtSignal, pyqtSlot
-from PyQt6.QtGui import QGuiApplication
-from PyQt6.QtQml import QQmlApplicationEngine
+from PySide6.QtCore import QObject, QThread, Signal, Slot
+from PySide6.QtWidgets import QApplication
 
 import models
+import views
 from ifdo import IFDOModel
 
 logger = logging.getLogger(__name__)
-
-
 
 def _get_images(directory: Path):
     extensions = ['.jpg', '.jpeg', '.png']
@@ -31,8 +27,6 @@ def _get_images(directory: Path):
         return []
     file_list = list(directory.rglob("*"))
     return [file for file in file_list if file.suffix.lower() in extensions]
-
-
 
 def get_shannon_entropy(image_data: Image.Image) -> float:
     """
@@ -61,7 +55,6 @@ def get_shannon_entropy(image_data: Image.Image) -> float:
 
     return float(entropy)
 
-
 def get_average_image_color(image_data: Image.Image) -> tuple[int, ...]:
     """
     Calculate the average color of an image.
@@ -83,11 +76,10 @@ def get_average_image_color(image_data: Image.Image) -> tuple[int, ...]:
 
     return tuple(map(int, average_color))
 
-
 class GeotagWorker(QObject):
-    progress = pyqtSignal(int, int)
-    error_msgs = pyqtSignal(str)
-    finished = pyqtSignal(str)
+    progress = Signal(int, int)
+    error_msgs = Signal(str)
+    finished = Signal(str)
 
     def __init__(self, tagger: PhotoTransectGPSTagger, import_dir: Path, export_dir: Path,
                        ifdo_model: Optional[IFDOModel] = None, exec_path: Optional[str] = None):
@@ -184,70 +176,69 @@ class GeotagWorker(QObject):
         self.finished.emit("Finished geotagging images.")
 
 class MainController(QObject):
-    def __init__(self, model: models.UserInputModel, config: models.ConfigModel,
-                       feedback: models.FeedbackModel, exec_path: Optional[str] = None):
+    def __init__(self, app_view: views.MainWindow, model: models.UserInputModel,
+                 config: models.ConfigModel, feedback: models.FeedbackModel,
+                 exec_path: Optional[str] = None):
         super().__init__()
+        self._app_view = app_view
         self._model = model
         self._config = config
-        self._model.importDirectoryChanged.connect(self.countImages)
+        # self._model.importDirectoryChanged.connect(self.countImages)
         self._feedback = feedback
         self._worker = None
         self._workerthread = None
         self._exec_path = exec_path
 
-    # Slot used to average the GPX file data to provide an estimated site location
-    @pyqtSlot(str)
-    def gpxFileSelected(self, path):
-        threading.Thread(target=self._process_gpx_file, args=(path,)).start()
 
-    def _process_gpx_file(self, path):
-        # Open the GPX file and read the data
-        with open(path.replace("file://", ""), "r", encoding="utf-8") as file:
-            gpx = gpxpy.parse(file)
+        # Connect the signals from the view to the model
+        self._app_view.inputDirChanged.connect(lambda x: setattr(self._model, 'importDirectory', x))
+        self._app_view.gpxFileChanged.connect(lambda x: setattr(self._model, 'gpxFilepath', x))
+        self._app_view.gpsPhotoChanged.connect(lambda x: setattr(self._model, 'gpsPhotoFilepath', x))
+        self._app_view.gpsDateChanged.connect(lambda x: setattr(self._model, 'gpsDate', x))
+        self._app_view.gpsTimeChanged.connect(lambda x: setattr(self._model, 'gpsTime', x))
+        self._app_view.gpsTimezoneIndexChanged.connect(lambda x: setattr(self._model, 'gpsTimezoneIndex', x))
+        self._app_view.outputDirChanged.connect(lambda x: setattr(self._model, 'exportDirectory', x))
+        self._app_view.ifdoExportChanged.connect(lambda x: setattr(self._model, 'ifdoEnable', x))
+        self._app_view.imageSetNameChanged.connect(lambda x: setattr(self._model, 'imageSetName', x))
+        self._app_view.contextChanged.connect(lambda x: setattr(self._model, 'imageContext', x))
+        self._app_view.projectNameChanged.connect(lambda x: setattr(self._model, 'projectName', x))
+        self._app_view.campaignNameChanged.connect(lambda x: setattr(self._model, 'campaignName', x))
+        self._app_view.piNameChanged.connect(lambda x: setattr(self._model, 'piName', x))
+        self._app_view.piOrcidChanged.connect(lambda x: setattr(self._model, 'piORCID', x))
+        self._app_view.collectorNameChanged.connect(lambda x: setattr(self._model, 'collectorName', x))
+        self._app_view.collectorOrcidChanged.connect(lambda x: setattr(self._model, 'collectorORCID', x))
+        self._app_view.copyrightOwnerChanged.connect(lambda x: setattr(self._model, 'organisation', x))
+        self._app_view.licenseChanged.connect(lambda x: setattr(self._model, 'license', x))
+        self._app_view.distanceAGChanged.connect(lambda x: setattr(self._model, 'distanceAboveGround', x))
+        self._app_view.imageObjectiveChanged.connect(lambda x: setattr(self._model, 'imageObjective', x))
+        self._app_view.imageAbstractChanged.connect(lambda x: setattr(self._model, 'imageAbstract', x))
+        self._app_view.startProcessingTriggered.connect(self.geotag)
 
-        avg_lat, avg_lon, _ = self._get_average_gpx(gpx)
-        if self._model.siteLatitude == "":
-            self._model.siteLatitude = f"{avg_lat:.08f}"
-        if self._model.siteLongitude == "":
-            self._model.siteLongitude = f"{avg_lon:.08f}"
+        # Connect internal view logic
+        self._app_view.clearFormTriggered.connect(self._app_view.clearForm)
+        self._app_view.inputDirChanged.connect(self._app_view.setDefaultPath)
+        self._app_view.ifdoExportChanged.connect(self._app_view.showIFDODetails)
+        self._app_view.gpsPhotoChanged.connect(self._app_view._image_preview.setFilepath)
 
-    def _get_average_gpx(self, gpx_data):
-        avg_lat = 0
-        avg_lon = 0
-        avg_ele = 0
-        count = 0
-        for track in gpx_data.tracks:
-            for segment in track.segments:
-                for point in segment.points:
-                    avg_lat += point.latitude
-                    avg_lon += point.longitude
-                    avg_ele += point.elevation
-                    count += 1
-        avg_lat /= count
-        avg_lon /= count
-        avg_ele /= count
-        return avg_lat, avg_lon, avg_ele
 
-    # Slot used to assist in setting start and stop times based on the GPS photo date
-    @pyqtSlot(str)
-    def gpsPhotoDateSet(self, date):
-        if self._model.collectionStartDate == "":
-            self._model.collectionStartDate = date
-        if self._model.collectionEndDate == "":
-            self._model.collectionEndDate = date
+        # Set up configs into view
+        if self._config.buildHash != "0":
+            default_window_title = self._app_view.windowTitle()
+            self._app_view.setWindowTitle(f"{default_window_title} - {self._config.buildHash}")
+        self._app_view.setTimezoneOptions(self._config.gpsTimezoneOptions)
+        if self._config.useWorkaround:
+            self._app_view.setTimezoneIndexDefault(15, reset=True)
 
-    # Slot to calculate number of images in the import directory
-    @pyqtSlot(str, result=int)
-    def countImages(self, directory):
-        path = Path(directory.replace("file://", ""))
-        if not path.exists() or not path.is_dir():
-            return 0
-        image_list = _get_images(path)
-        return len(image_list)
+        # Set up the feedback model into view
+        self._feedback.feedbackTextChanged.connect(self._app_view.setFeedbackText)
+        self._feedback.progressChanged.connect(self._app_view.setProgress)
 
     # Slot to start the geotagging process
-    @pyqtSlot(result=bool)
+    @Slot()
     def geotag(self):
+        # Manually trigger field signals to update the model
+        self._app_view.manuallyTriggerFieldSignals()
+
         # Clear any previous feedback
         self._feedback.feedbackText = ""
         # Validate the input
@@ -257,7 +248,7 @@ class MainController(QObject):
             self._feedback.addFeedbackLine("Validation failed")
             for error in validator.latest_errors:
                 self._feedback.addFeedbackLine(error)
-            return False
+            return
 
         # Create the PhotoTransectGPSTagger object
         jpg_gps_timestamp = datetime.datetime.fromisoformat(
@@ -310,15 +301,16 @@ class MainController(QObject):
         self._workerthread.finished.connect(self._workerthread.deleteLater)
         self._workerthread.start()
         self._feedback.addFeedbackLine("Geotagging images...")
-        return True
 
 if __name__ == "__main__":
-    app = QGuiApplication(sys.argv)
-    engine = QQmlApplicationEngine()
+    app = QApplication(sys.argv)
 
     user_input_model = models.UserInputModel()
     config_model = models.ConfigModel()
+    config_model.initialise()
     feedback_model = models.FeedbackModel()
+
+    main_view = views.MainWindow()
 
     # Determine if we're a package or running as a script
     if getattr(sys, "frozen", False):
@@ -336,18 +328,11 @@ if __name__ == "__main__":
         app_path = Path(os.path.dirname(os.path.realpath(__file__)))
         exiftool_path = None
 
-    controller = MainController(user_input_model, config_model, feedback_model,
+    controller = MainController(app_view=main_view, 
+                                model=user_input_model, 
+                                config=config_model, 
+                                feedback=feedback_model,
                                 exec_path=exiftool_path)
 
-    engine.rootContext().setContextProperty("userInputModel", user_input_model)
-    engine.rootContext().setContextProperty("configModel", config_model)
-    engine.rootContext().setContextProperty("feedbackModel", feedback_model)
-    engine.rootContext().setContextProperty("controller", controller)
-    config_model.initialise()
-    engine.load((app_path / "main.qml").as_uri())
-
-
-    if not engine.rootObjects():
-        sys.exit(-1)
-
+    main_view.show()
     sys.exit(app.exec())

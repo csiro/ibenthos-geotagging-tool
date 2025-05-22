@@ -4,31 +4,31 @@ import re
 from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtCore import QObject, pyqtProperty, pyqtSignal, pyqtSlot
+from PySide6.QtCore import Property, QObject, Signal, Slot
 
 
 class UserInputModel(QObject):
-    importDirectoryChanged = pyqtSignal(str)
-    gpxFilepathChanged = pyqtSignal(str)
-    gpsPhotoFilepathChanged = pyqtSignal(str)
-    gpsDateChanged = pyqtSignal(str)
-    gpsTimeChanged = pyqtSignal(str)
-    gpsTimezoneIndexChanged = pyqtSignal(int)
-    exportDirectoryChanged = pyqtSignal(str)
-    ifdoEnableChanged = pyqtSignal(bool)
-    imageSetNameChanged = pyqtSignal(str)
-    imageContextChanged = pyqtSignal(str)
-    projectNameChanged = pyqtSignal(str)
-    campaignNameChanged = pyqtSignal(str)
-    piNameChanged = pyqtSignal(str)
-    piORCIDChanged = pyqtSignal(str)
-    collectorNameChanged = pyqtSignal(str)
-    collectorORCIDChanged = pyqtSignal(str)
-    organisationChanged = pyqtSignal(str)
-    licenseChanged = pyqtSignal(str)
-    distanceAboveGroundChanged = pyqtSignal(str)
-    imageObjectiveChanged = pyqtSignal(str)
-    imageAbstractChanged = pyqtSignal(str)
+    importDirectoryChanged = Signal(str)
+    gpxFilepathChanged = Signal(str)
+    gpsPhotoFilepathChanged = Signal(str)
+    gpsDateChanged = Signal(str)
+    gpsTimeChanged = Signal(str)
+    gpsTimezoneIndexChanged = Signal(int)
+    exportDirectoryChanged = Signal(str)
+    ifdoEnableChanged = Signal(bool)
+    imageSetNameChanged = Signal(str)
+    imageContextChanged = Signal(str)
+    projectNameChanged = Signal(str)
+    campaignNameChanged = Signal(str)
+    piNameChanged = Signal(str)
+    piORCIDChanged = Signal(str)
+    collectorNameChanged = Signal(str)
+    collectorORCIDChanged = Signal(str)
+    organisationChanged = Signal(str)
+    licenseChanged = Signal(str)
+    distanceAboveGroundChanged = Signal(str)
+    imageObjectiveChanged = Signal(str)
+    imageAbstractChanged = Signal(str)
 
     def __init__(self):
         super().__init__()
@@ -54,7 +54,7 @@ class UserInputModel(QObject):
         self._image_objective = ""
         self._image_abstract = ""
 
-    @pyqtProperty(str, notify=importDirectoryChanged)
+    @Property(str, notify=importDirectoryChanged)
     def importDirectory(self):
         return self._import_dir
 
@@ -64,7 +64,7 @@ class UserInputModel(QObject):
             self._import_dir = directory
             self.importDirectoryChanged.emit(directory)
 
-    @pyqtProperty(str, notify=gpxFilepathChanged)
+    @Property(str, notify=gpxFilepathChanged)
     def gpxFilepath(self):
         return self._gpx_filepath
 
@@ -74,7 +74,7 @@ class UserInputModel(QObject):
             self._gpx_filepath = path
             self.gpxFilepathChanged.emit(path)
 
-    @pyqtProperty(str, notify=gpsPhotoFilepathChanged)
+    @Property(str, notify=gpsPhotoFilepathChanged)
     def gpsPhotoFilepath(self):
         return self._gps_photo_filepath
 
@@ -84,7 +84,7 @@ class UserInputModel(QObject):
             self._gps_photo_filepath = path
             self.gpsPhotoFilepathChanged.emit(path)
 
-    @pyqtProperty(str, notify=gpsDateChanged)
+    @Property(str, notify=gpsDateChanged)
     def gpsDate(self):
         return self._gps_date
 
@@ -94,7 +94,7 @@ class UserInputModel(QObject):
             self._gps_date = date
             self.gpsDateChanged.emit(date)
 
-    @pyqtProperty(str, notify=gpsTimeChanged)
+    @Property(str, notify=gpsTimeChanged)
     def gpsTime(self):
         return self._gps_time
 
@@ -104,7 +104,7 @@ class UserInputModel(QObject):
             self._gps_time = time
             self.gpsTimeChanged.emit(time)
 
-    @pyqtProperty(int, notify=gpsTimezoneIndexChanged)
+    @Property(int, notify=gpsTimezoneIndexChanged)
     def gpsTimezoneIndex(self):
         return self._gps_timezone_index
 
@@ -114,7 +114,7 @@ class UserInputModel(QObject):
             self._gps_timezone_index = timezone
             self.gpsTimezoneIndexChanged.emit(timezone)
 
-    @pyqtProperty(str, notify=exportDirectoryChanged)
+    @Property(str, notify=exportDirectoryChanged)
     def exportDirectory(self):
         return self._export_dir
 
@@ -124,7 +124,7 @@ class UserInputModel(QObject):
             self._export_dir = directory
             self.exportDirectoryChanged.emit(directory)
 
-    @pyqtProperty(bool, notify=ifdoEnableChanged)
+    @Property(bool, notify=ifdoEnableChanged)
     def ifdoEnable(self):
         return self._ifdo_enable
 
@@ -134,7 +134,7 @@ class UserInputModel(QObject):
             self._ifdo_enable = enable
             self.ifdoEnableChanged.emit(enable)
 
-    @pyqtProperty(str, notify=imageSetNameChanged)
+    @Property(str, notify=imageSetNameChanged)
     def imageSetName(self):
         return self._image_set_name
 
@@ -144,7 +144,7 @@ class UserInputModel(QObject):
             self._image_set_name = image_set_name
             self.imageSetNameChanged.emit(image_set_name)
 
-    @pyqtProperty(str, notify=imageContextChanged)
+    @Property(str, notify=imageContextChanged)
     def imageContext(self):
         return self._image_context
 
@@ -154,7 +154,7 @@ class UserInputModel(QObject):
             self._image_context = image_context
             self.imageContextChanged.emit(image_context)
 
-    @pyqtProperty(str, notify=projectNameChanged)
+    @Property(str, notify=projectNameChanged)
     def projectName(self):
         return self._project_name
 
@@ -164,7 +164,7 @@ class UserInputModel(QObject):
             self._project_name = name
             self.projectNameChanged.emit(name)
 
-    @pyqtProperty(str, notify=campaignNameChanged)
+    @Property(str, notify=campaignNameChanged)
     def campaignName(self):
         return self._campaign_name
 
@@ -174,7 +174,7 @@ class UserInputModel(QObject):
             self._campaign_name = name
             self.campaignNameChanged.emit(name)
 
-    @pyqtProperty(str, notify=piNameChanged)
+    @Property(str, notify=piNameChanged)
     def piName(self):
         return self._pi_name
 
@@ -184,7 +184,7 @@ class UserInputModel(QObject):
             self._pi_name = name
             self.piNameChanged.emit(name)
 
-    @pyqtProperty(str, notify=piORCIDChanged)
+    @Property(str, notify=piORCIDChanged)
     def piORCID(self):
         return self._pi_orcid
 
@@ -194,7 +194,7 @@ class UserInputModel(QObject):
             self._pi_orcid = orcid
             self.piORCIDChanged.emit(orcid)
 
-    @pyqtProperty(str, notify=collectorNameChanged)
+    @Property(str, notify=collectorNameChanged)
     def collectorName(self):
         return self._collector_name
 
@@ -204,7 +204,7 @@ class UserInputModel(QObject):
             self._collector_name = name
             self.collectorNameChanged.emit(name)
 
-    @pyqtProperty(str, notify=collectorORCIDChanged)
+    @Property(str, notify=collectorORCIDChanged)
     def collectorORCID(self):
         return self._collector_orcid
 
@@ -214,7 +214,7 @@ class UserInputModel(QObject):
             self._collector_orcid = orcid
             self.collectorORCIDChanged.emit(orcid)
 
-    @pyqtProperty(str, notify=organisationChanged)
+    @Property(str, notify=organisationChanged)
     def organisation(self):
         return self._organisation
 
@@ -224,7 +224,7 @@ class UserInputModel(QObject):
             self._organisation = org
             self.organisationChanged.emit(org)
 
-    @pyqtProperty(str, notify=licenseChanged)
+    @Property(str, notify=licenseChanged)
     def license(self):
         return self._license
 
@@ -234,7 +234,7 @@ class UserInputModel(QObject):
             self._license = new_license
             self.licenseChanged.emit(new_license)
 
-    @pyqtProperty(str, notify=distanceAboveGroundChanged)
+    @Property(str, notify=distanceAboveGroundChanged)
     def distanceAboveGround(self):
         return self._distance_above_ground
 
@@ -244,7 +244,7 @@ class UserInputModel(QObject):
             self._distance_above_ground = distance
             self.distanceAboveGroundChanged.emit(distance)
 
-    @pyqtProperty(str, notify=imageObjectiveChanged)
+    @Property(str, notify=imageObjectiveChanged)
     def imageObjective(self):
         return self._image_objective
 
@@ -254,7 +254,7 @@ class UserInputModel(QObject):
             self._image_objective = image_objective
             self.imageObjectiveChanged.emit(image_objective)
 
-    @pyqtProperty(str, notify=imageAbstractChanged)
+    @Property(str, notify=imageAbstractChanged)
     def imageAbstract(self):
         return self._image_abstract
 
@@ -264,7 +264,7 @@ class UserInputModel(QObject):
             self._image_abstract = abstract
             self.imageAbstractChanged.emit(abstract)
 
-    @pyqtSlot()
+    @Slot()
     def clearForm(self):
         self.importDirectory = ""
         self.gpxFilepath = ""
@@ -288,7 +288,7 @@ class UserInputModel(QObject):
         self.imageObjective = ""
         self.imageAbstract = ""
 
-    @pyqtSlot(result=bool)
+    @Slot(result=bool)
     def validateForm(self):
         validator = UserInputModelValidator()
         return validator.validate(self)

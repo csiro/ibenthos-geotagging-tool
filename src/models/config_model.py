@@ -2,11 +2,11 @@
 import zoneinfo
 from datetime import timedelta, tzinfo
 
-from PyQt6.QtCore import QObject, pyqtProperty, pyqtSignal
+from PySide6.QtCore import Property, QObject, Signal
 
 
 class ConfigModel(QObject):
-    gpsTimezoneOptionsChanged = pyqtSignal(list)
+    gpsTimezoneOptionsChanged = Signal(list)
 
     def __init__(self):
         super().__init__()
@@ -14,7 +14,7 @@ class ConfigModel(QObject):
         self._build_hash = "0"
         self._use_workaround = False
 
-    @pyqtProperty(list, notify=gpsTimezoneOptionsChanged)
+    @Property(list, notify=gpsTimezoneOptionsChanged)
     def gpsTimezoneOptions(self):
         return self._gps_timezone_options
 
@@ -24,7 +24,7 @@ class ConfigModel(QObject):
             self._gps_timezone_options = options
             self.gpsTimezoneOptionsChanged.emit(options)
     
-    @pyqtProperty(str)
+    @Property(str)
     def buildHash(self):
         return self._build_hash
     
@@ -33,12 +33,13 @@ class ConfigModel(QObject):
         if self._build_hash != value:
             self._build_hash = value
 
-    @pyqtProperty(bool)
+    @Property(bool)
     def useWorkaround(self):
         return self._use_workaround
 
     def initialise(self):
-        self.gpsTimezoneOptions = sorted(zoneinfo.available_timezones())
+        # self.gpsTimezoneOptions = sorted(zoneinfo.available_timezones())
+        self.gpsTimezoneOptions = []
 
         # Workaround for pyinstaller issue importing zoneinfo
         if len(self.gpsTimezoneOptions) == 0:

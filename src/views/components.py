@@ -2,12 +2,15 @@ import os
 
 from PySide6.QtCore import QRegularExpression, QSize, Qt, Signal, Slot
 from PySide6.QtGui import QPixmap, QRegularExpressionValidator, QTextOption
-from PySide6.QtWidgets import (QFileDialog, QHBoxLayout, QLabel, QLineEdit,
-                               QPushButton, QScrollArea, QSizePolicy,
-                               QTextEdit, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout,
+                               QLabel, QLineEdit, QPushButton, QScrollArea,
+                               QSizePolicy, QTextEdit, QVBoxLayout, QWidget)
 
 
 class ConfigDateTime(QWidget):
+    dateChanged = Signal(str)
+    timeChanged = Signal(str)
+
     def __init__(self, width_ratio=0.3):
         super().__init__()
         self.width_ratio = width_ratio
@@ -30,6 +33,7 @@ class ConfigDateTime(QWidget):
         )
         date_validator = QRegularExpressionValidator(date_regex, self.configDate)
         self.configDate.setValidator(date_validator)
+        self.configDate.editingFinished.connect(lambda: self.dateChanged.emit(self.date))
         layout.addWidget(self.configDate, int((1 - self.width_ratio) / 2 * 100))
 
         # Time Field (QLineEdit with validator)
@@ -40,6 +44,7 @@ class ConfigDateTime(QWidget):
         )
         time_validator = QRegularExpressionValidator(time_regex, self.configTime)
         self.configTime.setValidator(time_validator)
+        self.configTime.editingFinished.connect(lambda: self.timeChanged.emit(self.time))
         layout.addWidget(self.configTime, int((1 - self.width_ratio) / 2 * 100))
 
         self.setLayout(layout)
@@ -59,6 +64,7 @@ class ConfigDateTime(QWidget):
     @date.setter
     def date(self, value):
         self.configDate.setText(value)
+        self.configDate.editingFinished.emit()
 
     @property
     def time(self):
@@ -67,9 +73,11 @@ class ConfigDateTime(QWidget):
     @time.setter
     def time(self, value):
         self.configTime.setText(value)
-
+        self.configTime.editingFinished.emit()
 
 class ConfigMultilineTextBox(QWidget):
+    valueChanged = Signal(str)
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -91,6 +99,7 @@ class ConfigMultilineTextBox(QWidget):
         self.configValue.setPlaceholderText("Default")
         self.configValue.setMinimumHeight(75)
         self.configValue.setMaximumHeight(75)
+        self.configValue.textChanged.connect(lambda: self.valueChanged.emit(self.value))
 
         scroll_area = QScrollArea(self)
         scroll_area.setWidgetResizable(True)
@@ -127,8 +136,11 @@ class ConfigMultilineTextBox(QWidget):
     @value.setter
     def value(self, val):
         self.configValue.setPlainText(val)
+        self.configValue.textChanged.emit()
 
 class ConfigTextBox(QWidget):
+    valueChanged = Signal(str)
+
     def __init__(self, parent=None, width_ratio=0.3):
         super().__init__(parent)
         self.width_ratio = width_ratio
@@ -147,6 +159,7 @@ class ConfigTextBox(QWidget):
         # Text Field (configValue)
         self.configValue = QLineEdit(self)
         self.configValue.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.configValue.editingFinished.connect(lambda : self.valueChanged.emit(self.value))
         layout.addWidget(self.configValue, int((1 - self.width_ratio) * 100))
 
         self.setLayout(layout)
@@ -174,7 +187,7 @@ class ConfigTextBox(QWidget):
     @value.setter
     def value(self, val):
         self.configValue.setText(val)
-
+        self.configValue.editingFinished.emit()
 
 class ConfigDirectory(QWidget):
     directoryChanged = Signal(str)  # emits the selected directory
@@ -226,6 +239,7 @@ class ConfigDirectory(QWidget):
     def value(self, path):
         self.importDirectory = path
         self.importDirPathField.setText(path)
+        self.directoryChanged.emit(path)
 
 class ConfigFileSelector(QWidget):
     fileSelected = Signal(str)  # Emits when a file is selected
@@ -236,6 +250,7 @@ class ConfigFileSelector(QWidget):
         self._label_text = label_text
         self.width_ratio = width_ratio
         self.setMinimumWidth(300)
+        self.defaultPath = default_path
 
         self.selectedFile = default_path
         self.name_filters = name_filters or ["Image files (*.jpg *.jpeg *.png *.bmp)"]
@@ -267,7 +282,7 @@ class ConfigFileSelector(QWidget):
         file_path, _ = QFileDialog.getOpenFileName(
             self,
             f"Select the {self._label_text}",
-            self.selectedFile or "",
+            self.defaultPath,
             ";;".join(self.name_filters)
         )
         if file_path:
@@ -283,6 +298,7 @@ class ConfigFileSelector(QWidget):
     def value(self, path):
         self.selectedFile = path
         self.gpsPhotoPathField.setText(path)
+        self.fileSelected.emit(path)
 
 class ImagePreview(QLabel):
     def __init__(self, parent=None):
@@ -318,6 +334,108 @@ class ImagePreview(QLabel):
         if self._filepath and os.path.isfile(self._filepath):
             self.setFilepath(self._filepath)
 
+class ConfigSelector(QWidget):
+    indexChanged = Signal(int)  # emits when the selected index changes
+
+    def __init__(self, parent=None, options=None, label="Timezone", default_index=0):
+        super().__init__(parent)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
+
+        self.label = QLabel(label + ": ", self)
+        layout.addWidget(self.label)
+
+        self.comboBox = QComboBox(self)
+        layout.addWidget(self.comboBox)
+
+        if options:
+            self.setOptions(options)
+
+        self.comboBox.setCurrentIndex(default_index)
+        self.comboBox.currentIndexChanged.connect(self.indexChanged)
+
+        self.setLayout(layout)
+
+    def _on_index_changed(self, index):
+        self.indexChanged.emit(index)
+
+    def setOptions(self, options):
+        self.comboBox.clear()
+        self.comboBox.addItems(options)
+
+    @property
+    def currentIndex(self):
+        return self.comboBox.currentIndex()
+
+    @currentIndex.setter
+    def currentIndex(self, index):
+        self.comboBox.setCurrentIndex(index)
+
+
+class FeedbackViewer(QWidget):
+    def __init__(self, parent=None, default_text="Feedback messages will be displayed here..."):
+        super().__init__(parent)
+
+        # Layout for the container widget
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        # Text area inside scroll view
+        self.textArea = QTextEdit()
+        self.textArea.setPlaceholderText(default_text)
+        self.textArea.setReadOnly(True)
+        self.textArea.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        # ScrollArea wrapper
+        self.scrollArea = QScrollArea()
+        self.scrollArea.setWidgetResizable(True)
+        self.scrollArea.setWidget(self.textArea)
+        self.scrollArea.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        layout.addWidget(self.scrollArea)
+
+        self.setLayout(layout)
+
+    def setText(self, text: str):
+        self.textArea.setPlainText(text)
+
+    def appendText(self, text: str):
+        self.textArea.append(text)
+
+    def clear(self):
+        self.textArea.clear()
+
+    def setPlaceholderText(self, text: str):
+        self.textArea.setPlaceholderText(text)
+
+    @property
+    def text(self):
+        return self.textArea.toPlainText()
+
+class ControlRow(QWidget):
+    clearTriggered = Signal()
+    startTriggered = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(20)
+
+        self.clearButton = QPushButton("Clear Form")
+        self.clearButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.clearButton.clicked.connect(self.clearTriggered)
+        layout.addWidget(self.clearButton, alignment=Qt.AlignHCenter)
+
+        self.startButton = QPushButton("Start processing")
+        self.startButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.startButton.clicked.connect(self.startTriggered)
+        layout.addWidget(self.startButton, alignment=Qt.AlignHCenter)
+
+        self.setLayout(layout)
 
 if __name__ == "__main__":
     from PySide6.QtWidgets import QApplication, QVBoxLayout
@@ -368,6 +486,17 @@ if __name__ == "__main__":
     img_browse = ConfigFileSelector(label_text="GPS Photo")
     img_browse.fileSelected.connect(image_preview.setFilepath)
     layout.addWidget(img_browse)
+
+    widget = ConfigSelector(options=["Option 1", "Option 2", "Option 3"], label="Select Option")
+    widget.indexChanged.connect(lambda index: print(f"Selected index: {index}"))
+    layout.addWidget(widget)
+
+    widget = QCheckBox("Check me")
+    widget.setChecked(False)
+    layout.addWidget(widget)
+
+    widget = ControlRow()
+    layout.addWidget(widget)
 
     main_window.setLayout(layout)
     main_window.show()
