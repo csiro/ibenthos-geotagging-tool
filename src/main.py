@@ -316,7 +316,10 @@ if __name__ == "__main__":
     if getattr(sys, "frozen", False):
         logger.info("Running as a package")
         app_path = Path(sys._MEIPASS)
-        exiftool_path = str(app_path / "bin" / "exiftool")
+        if sys.platform == "win32":
+            exiftool_path = str(app_path / "bin" / "exiftool.exe")
+        else:
+            exiftool_path = str(app_path / "bin" / "exiftool")
         build_id_path = app_path / "build_id.txt"
         if build_id_path.exists():
             with open(build_id_path, "r") as f:
@@ -325,8 +328,16 @@ if __name__ == "__main__":
         else:
             logger.warning("Build ID file not found.")
     else:
+        # Probably developing, safe to assume we're in the development dir
         app_path = Path(os.path.dirname(os.path.realpath(__file__)))
-        exiftool_path = None
+        if sys.platform == "darwin":
+            exiftool_path = str(app_path / ".." / "Image-ExifTool-13.29" / "exiftool")
+        elif sys.platform == "win32":
+            exiftool_path = str(app_path / ".." / "exiftool-13.29_64" / "exiftool.exe")
+        else:
+            print(sys.platform)
+            raise NotImplementedError("This platform is not currently supported")
+
 
     controller = MainController(app_view=main_view, 
                                 model=user_input_model, 
