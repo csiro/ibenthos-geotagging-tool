@@ -5,7 +5,7 @@ set -e
 python3 -m venv x86_build
 source x86_build/bin/activate
 
-arch -x86_64 pip install pyqt6 pyexiftool pyyaml pyinstaller
+arch -x86_64 pip install pyside6 pyexiftool pyyaml pyinstaller
 arch -x86_64 pip install git+ssh://git@bitbucket.csiro.au:7999/visage/geotag_pt.git
 
 git rev-parse HEAD > x86_build/build_id.txt
