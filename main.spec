@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('src/main.qml', '.'), ('src/Components', 'Components'), ('x86_build/build_id.txt', '.')]
+datas = [('x86_build/build_id.txt', '.')]
 binaries = [('Image-ExifTool-13.29/exiftool', 'bin'), ('Image-ExifTool-13.29/lib', 'bin/lib')]
 hiddenimports = []
 tmp_ret = collect_all('dateutil')
