@@ -299,6 +299,8 @@ class MainController(QObject):
         self._worker.finished.connect(self._feedback.addFeedbackLine)
         self._worker.finished.connect(self._worker.deleteLater)
         self._workerthread.finished.connect(self._workerthread.deleteLater)
+        # This ensures the progress bar fills up once execution completes
+        self._workerthread.finished.connect(lambda : self._app_view.setProgress(100))
         self._workerthread.start()
         self._feedback.addFeedbackLine("Geotagging images...")
 
