@@ -262,13 +262,35 @@ class MainController(QObject):
             jpg_gps_timestamp = jpg_gps_timestamp.replace(tzinfo=zoneinfo.ZoneInfo(
                 self._config.gpsTimezoneOptions[self._model.gpsTimezoneIndex])
             )
-        tagger = PhotoTransectGPSTagger.from_files(
-            self._model.gpxFilepath.replace("file://", ""),
-            self._model.gpsPhotoFilepath.replace("file://", ""),
-            jpg_gps_timestamp,
-            exiftool_path=self._exec_path
-        )
-
+        try:
+            tagger = PhotoTransectGPSTagger.from_files(
+                self._model.gpxFilepath.replace("file://", ""),
+                self._model.gpsPhotoFilepath.replace("file://", ""),
+                jpg_gps_timestamp,
+                exiftool_path=self._exec_path
+            )
+        except AssertionError as e:
+            if "EXIF:OffsetTimeOriginal" in str(e):
+                self._feedback.addFeedbackLine(
+                    "Warning: The GPS photo does not contain time zone data in the metadata. " +\
+                    f"Assuming timezone is {self._config.gpsTimezoneOptions[self._model.gpsTimezoneIndex]}."
+                )
+                logger.warning(
+                    "The GPS photo does not contain time zone data in the metadata. Assuming timezone is %s.",
+                    self._config.gpsTimezoneOptions[self._model.gpsTimezoneIndex]
+                )
+                tz_override = self._config.gpsTimezoneOptions[self._model.gpsTimezoneIndex].replace("UTC", "")
+                tagger = PhotoTransectGPSTagger.from_files(
+                    self._model.gpxFilepath.replace("file://", ""),
+                    self._model.gpsPhotoFilepath.replace("file://", ""),
+                    jpg_gps_timestamp,
+                    exiftool_path=self._exec_path,
+                    tz_override=tz_override
+                )
+            else:
+                self._feedback.addFeedbackLine(f"Error: {str(e)}")
+                logger.error("Error creating PhotoTransectGPSTagger: %s", str(e))
+                return
         # Create the IFDO model
         if self._model.ifdoEnable:
             ifdo_model = IFDOModel(image_set_name=self._model.imageSetName,
