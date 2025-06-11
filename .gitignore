@@ -8,3 +8,4 @@ x86_build/
 launch.json
 Image-ExifTool-*/
 Output/
+exiftool-*/

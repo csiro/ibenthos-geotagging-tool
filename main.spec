@@ -9,7 +9,7 @@ if sys.platform == "darwin":
     hiddenimports = []
 else:
     datas = [('x86_build/build_id.txt', '.')]
-    binaries = [('exiftool-13.29_64/exiftool.exe', 'bin'), ('exiftool-13.29_64/exiftool_files', 'bin/exiftool_files')]
+    binaries = [('x86_build/exiftool-13.29_64/exiftool.exe', 'bin'), ('x86_build/exiftool-13.29_64/exiftool_files', 'bin/exiftool_files')]
     hiddenimports = []
 tmp_ret = collect_all('dateutil')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
