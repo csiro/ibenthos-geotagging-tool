@@ -1,10 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_all
 import sys
+
+from PyInstaller.utils.hooks import collect_all
 
 if sys.platform == "darwin":
     datas = [('x86_build/build_id.txt', '.')]
-    binaries = [('Image-ExifTool-13.29/exiftool', 'bin'), ('Image-ExifTool-13.29/lib', 'bin/lib')]
+    binaries = [('x86_build/Image-ExifTool-13.29/exiftool', 'bin'), ('x86_build/Image-ExifTool-13.29/lib', 'bin/lib')]
     hiddenimports = []
 else:
     datas = [('x86_build/build_id.txt', '.')]
