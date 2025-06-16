@@ -10,10 +10,12 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 class UserInputModel(QObject):
     importDirectoryChanged = Signal(str)
     gpxFilepathChanged = Signal(str)
+    gpsPhotoAvailableChanged = Signal(bool)
     gpsPhotoFilepathChanged = Signal(str)
     gpsDateChanged = Signal(str)
     gpsTimeChanged = Signal(str)
     gpsTimezoneIndexChanged = Signal(int)
+    cameraTimezoneIndexChanged = Signal(int)
     exportDirectoryChanged = Signal(str)
     ifdoEnableChanged = Signal(bool)
     imageSetNameChanged = Signal(str)
@@ -34,10 +36,12 @@ class UserInputModel(QObject):
         super().__init__()
         self._import_dir = ""
         self._gpx_filepath = ""
+        self._gps_photo_available = False
         self._gps_photo_filepath = ""
         self._gps_date = ""
         self._gps_time = ""
         self._gps_timezone_index = 0
+        self._camera_timezone_index = 0
         self._export_dir = ""
         self._ifdo_enable = False
         self._image_set_name = ""
@@ -73,6 +77,16 @@ class UserInputModel(QObject):
         if self._gpx_filepath != path:
             self._gpx_filepath = path
             self.gpxFilepathChanged.emit(path)
+
+    @Property(bool, notify=gpsPhotoAvailableChanged)
+    def gpsPhotoAvailable(self):
+        return self._gps_photo_available
+
+    @gpsPhotoAvailable.setter
+    def gpsPhotoAvailable(self, available):
+        if self._gps_photo_available != available:
+            self._gps_photo_available = available
+            self.gpsPhotoAvailableChanged.emit(available)
 
     @Property(str, notify=gpsPhotoFilepathChanged)
     def gpsPhotoFilepath(self):
@@ -113,6 +127,16 @@ class UserInputModel(QObject):
         if self._gps_timezone_index != timezone:
             self._gps_timezone_index = timezone
             self.gpsTimezoneIndexChanged.emit(timezone)
+
+    @Property(int, notify=cameraTimezoneIndexChanged)
+    def cameraTimezoneIndex(self):
+        return self._camera_timezone_index
+
+    @cameraTimezoneIndex.setter
+    def cameraTimezoneIndex(self, timezone):
+        if self._camera_timezone_index != timezone:
+            self._camera_timezone_index = timezone
+            self.cameraTimezoneIndexChanged.emit(timezone)
 
     @Property(str, notify=exportDirectoryChanged)
     def exportDirectory(self):
@@ -268,10 +292,12 @@ class UserInputModel(QObject):
     def clearForm(self):
         self.importDirectory = ""
         self.gpxFilepath = ""
+        self.gpsPhotoAvailable = False
         self.gpsPhotoFilepath = ""
         self.gpsDate = ""
         self.gpsTime = ""
         self.gpsTimezoneIndex = 0
+        self.cameraTimezoneIndex = 0
         self.exportDirectory = ""
         self.ifdoEnable = False
         self.imageSetName = ""
@@ -301,10 +327,12 @@ class UserInputModelValidator:
         main_validators = {
             self._validate_import_directory : [model.importDirectory],
             self._validate_gpx_file : [model.gpxFilepath],
-            self._validate_gps_photo_file : [model.gpsPhotoFilepath],
-            self._validate_gps_date : [model.gpsDate],
-            self._validate_gps_time : [model.gpsTime],
+            self._validate_gps_photo_available : [model.gpsPhotoAvailable],
+            self._validate_gps_photo_file : [model.gpsPhotoAvailable, model.gpsPhotoFilepath],
+            self._validate_gps_date : [model.gpsPhotoAvailable, model.gpsDate],
+            self._validate_gps_time : [model.gpsPhotoAvailable, model.gpsTime],
             self._validate_gps_timezone : [model.gpsTimezoneIndex],
+            self._validate_camera_timezone : [model.cameraTimezoneIndex],
             self._validate_output_directory : [model.exportDirectory],
             self._validate_ifdo_enable : [model.ifdoEnable],
             self._validate_image_set_name : [model.ifdoEnable, model.imageSetName],
@@ -354,7 +382,13 @@ class UserInputModelValidator:
         return None
 
     @staticmethod
-    def _validate_gps_photo_file(gps_photo_fp: str) -> Optional[str]:
+    def _validate_gps_photo_available(gps_photo_available: bool) -> Optional[str]:
+        return None
+
+    @staticmethod
+    def _validate_gps_photo_file(gps_photo_available: bool, gps_photo_fp: str) -> Optional[str]:
+        if not gps_photo_available:
+            return None
         if gps_photo_fp == "":
             return "GPS photo file path is empty"
         path = Path(gps_photo_fp.replace("file://", ""))
@@ -365,7 +399,9 @@ class UserInputModelValidator:
         return None
 
     @staticmethod
-    def _validate_gps_date(gps_date: str) -> Optional[str]:
+    def _validate_gps_date(gps_photo_available: bool, gps_date: str) -> Optional[str]:
+        if not gps_photo_available:
+            return None
         if gps_date == "":
             return "GPS Date field is empty"
         try:
@@ -375,7 +411,9 @@ class UserInputModelValidator:
         return None
 
     @staticmethod
-    def _validate_gps_time(gps_time: str) -> Optional[str]:
+    def _validate_gps_time(gps_photo_available: bool, gps_time: str) -> Optional[str]:
+        if not gps_photo_available:
+            return None
         if gps_time == "":
             return "GPS Time field is empty"
         try:
@@ -388,6 +426,12 @@ class UserInputModelValidator:
     def _validate_gps_timezone(gps_tz: str) -> Optional[str]:
         if gps_tz < 0:
             return "GPS Timezone field is empty"
+        return None
+
+    @staticmethod
+    def _validate_camera_timezone(camera_tz: str) -> Optional[str]:
+        if camera_tz < 0:
+            return "Camera Timezone field is empty"
         return None
 
     @staticmethod

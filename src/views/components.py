@@ -337,7 +337,7 @@ class ImagePreview(QLabel):
 class ConfigSelector(QWidget):
     indexChanged = Signal(int)  # emits when the selected index changes
 
-    def __init__(self, parent=None, options=None, label="Timezone", default_index=0):
+    def __init__(self, parent=None, options=None, label="GPS timezone", default_index=0):
         super().__init__(parent)
 
         layout = QHBoxLayout(self)

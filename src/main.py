@@ -82,11 +82,13 @@ class GeotagWorker(QObject):
     finished = Signal(str)
 
     def __init__(self, tagger: PhotoTransectGPSTagger, import_dir: Path, export_dir: Path,
-                       ifdo_model: Optional[IFDOModel] = None, exec_path: Optional[str] = None):
+                       ifdo_model: Optional[IFDOModel] = None, exec_path: Optional[str] = None,
+                       tz_override: Optional[str] = None):
         super().__init__()
         self.tagger = tagger
         self.import_dir = import_dir
         self.export_dir = export_dir
+        self.tz_override = tz_override
 
         self.ifdo_model = ifdo_model
         self.exec_path = exec_path
@@ -138,7 +140,7 @@ class GeotagWorker(QObject):
                 relative_fn = image_fn.relative_to(self.import_dir)
                 exif_data = et.get_metadata(str(image_fn))[0]
                 try:
-                    gps_tags = self.tagger.generate_gps_tags(exif_data)
+                    gps_tags = self.tagger.generate_gps_tags(exif_data, tz_override=self.tz_override)
                 except IndexError as e:
                     logger.error(
                         "Image %s not within range of GPX file. Skipping this image.", image_fn
@@ -193,10 +195,12 @@ class MainController(QObject):
         # Connect the signals from the view to the model
         self._app_view.inputDirChanged.connect(lambda x: setattr(self._model, 'importDirectory', x))
         self._app_view.gpxFileChanged.connect(lambda x: setattr(self._model, 'gpxFilepath', x))
+        self._app_view.gpsPhotoAvailableChanged.connect(lambda x: setattr(self._model, 'gpsPhotoAvailable', x))
         self._app_view.gpsPhotoChanged.connect(lambda x: setattr(self._model, 'gpsPhotoFilepath', x))
         self._app_view.gpsDateChanged.connect(lambda x: setattr(self._model, 'gpsDate', x))
         self._app_view.gpsTimeChanged.connect(lambda x: setattr(self._model, 'gpsTime', x))
         self._app_view.gpsTimezoneIndexChanged.connect(lambda x: setattr(self._model, 'gpsTimezoneIndex', x))
+        self._app_view.cameraTimezoneIndexChanged.connect(lambda x: setattr(self._model, 'cameraTimezoneIndex', x))
         self._app_view.outputDirChanged.connect(lambda x: setattr(self._model, 'exportDirectory', x))
         self._app_view.ifdoExportChanged.connect(lambda x: setattr(self._model, 'ifdoEnable', x))
         self._app_view.imageSetNameChanged.connect(lambda x: setattr(self._model, 'imageSetName', x))
@@ -251,46 +255,32 @@ class MainController(QObject):
             return
 
         # Create the PhotoTransectGPSTagger object
-        jpg_gps_timestamp = datetime.datetime.fromisoformat(
-            self._model.gpsDate + " " + self._model.gpsTime
-        )
-        if self._config.useWorkaround:
-            jpg_gps_timestamp = jpg_gps_timestamp.replace(tzinfo=models.TimezoneWorkaround(
-                self._config.gpsTimezoneOptions[self._model.gpsTimezoneIndex])
+        # Use GPS photo and timestamp only if GPS photo is available
+        tz_override = self._config.gpsTimezoneOptions[self._model.cameraTimezoneIndex].replace("UTC", "")
+        if self._model.gpsPhotoAvailable:
+            jpg_gps_timestamp = datetime.datetime.fromisoformat(
+                self._model.gpsDate + " " + self._model.gpsTime
             )
-        else:
-            jpg_gps_timestamp = jpg_gps_timestamp.replace(tzinfo=zoneinfo.ZoneInfo(
-                self._config.gpsTimezoneOptions[self._model.gpsTimezoneIndex])
-            )
-        try:
-            tagger = PhotoTransectGPSTagger.from_files(
-                self._model.gpxFilepath.replace("file://", ""),
-                self._model.gpsPhotoFilepath.replace("file://", ""),
-                jpg_gps_timestamp,
-                exiftool_path=self._exec_path
-            )
-        except AssertionError as e:
-            if "EXIF:OffsetTimeOriginal" in str(e):
-                self._feedback.addFeedbackLine(
-                    "Warning: The GPS photo does not contain time zone data in the metadata. " +\
-                    f"Assuming timezone is {self._config.gpsTimezoneOptions[self._model.gpsTimezoneIndex]}."
-                )
-                logger.warning(
-                    "The GPS photo does not contain time zone data in the metadata. Assuming timezone is %s.",
-                    self._config.gpsTimezoneOptions[self._model.gpsTimezoneIndex]
-                )
-                tz_override = self._config.gpsTimezoneOptions[self._model.gpsTimezoneIndex].replace("UTC", "")
-                tagger = PhotoTransectGPSTagger.from_files(
-                    self._model.gpxFilepath.replace("file://", ""),
-                    self._model.gpsPhotoFilepath.replace("file://", ""),
-                    jpg_gps_timestamp,
-                    exiftool_path=self._exec_path,
-                    tz_override=tz_override
+            if self._config.useWorkaround:
+                jpg_gps_timestamp = jpg_gps_timestamp.replace(tzinfo=models.TimezoneWorkaround(
+                    self._config.gpsTimezoneOptions[self._model.gpsTimezoneIndex])
                 )
             else:
-                self._feedback.addFeedbackLine(f"Error: {str(e)}")
-                logger.error("Error creating PhotoTransectGPSTagger: %s", str(e))
-                return
+                jpg_gps_timestamp = jpg_gps_timestamp.replace(tzinfo=zoneinfo.ZoneInfo(
+                    self._config.gpsTimezoneOptions[self._model.gpsTimezoneIndex])
+                )
+            gps_photo_path = self._model.gpsPhotoFilepath.replace("file://", "")
+        else:
+            jpg_gps_timestamp = None
+            gps_photo_path = None
+
+        tagger = PhotoTransectGPSTagger.from_files(
+            self._model.gpxFilepath.replace("file://", ""),
+            jpg_gps_fn=gps_photo_path,
+            jpg_gps_timestamp=jpg_gps_timestamp,
+            exiftool_path=self._exec_path,
+            tz_override=tz_override
+        )
         # Create the IFDO model
         if self._model.ifdoEnable:
             ifdo_model = IFDOModel(image_set_name=self._model.imageSetName,
@@ -312,7 +302,7 @@ class MainController(QObject):
         import_dir = Path(self._model.importDirectory.replace("file://", ""))
         export_dir = Path(self._model.exportDirectory.replace("file://", ""))
         self._worker = GeotagWorker(tagger, import_dir, export_dir, ifdo_model=ifdo_model,
-                                    exec_path=self._exec_path)
+                                    exec_path=self._exec_path, tz_override=tz_override)
         self._worker.moveToThread(self._workerthread)
         self._workerthread.started.connect(self._worker.run)
         self._worker.progress.connect(self._feedback.updateProgress)
@@ -324,7 +314,11 @@ class MainController(QObject):
         # This ensures the progress bar fills up once execution completes
         self._workerthread.finished.connect(lambda : self._app_view.setProgress(100))
         self._workerthread.start()
-        self._feedback.addFeedbackLine("Geotagging images...")
+        if self._model.gpsPhotoAvailable:
+            self._feedback.addFeedbackLine("Geotagging images using GPS photo synchronization...")
+        else:
+            self._feedback.addFeedbackLine("Geotagging images assuming camera and GPS times are synchronized...")
+        self._feedback.addFeedbackLine("Processing images...")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

@@ -13,10 +13,12 @@ logger = logging.getLogger(__name__)
 class MainWindow(QWidget):
     inputDirChanged = Signal(str)
     gpxFileChanged = Signal(str)
+    gpsPhotoAvailableChanged = Signal(bool)
     gpsPhotoChanged = Signal(str)
     gpsDateChanged = Signal(str)
     gpsTimeChanged = Signal(str)
     gpsTimezoneIndexChanged = Signal(int)
+    cameraTimezoneIndexChanged = Signal(int)
     outputDirChanged = Signal(str)
     ifdoExportChanged = Signal(bool)
     imageSetNameChanged = Signal(str)
@@ -59,6 +61,12 @@ class MainWindow(QWidget):
         self._gpx_file_config.fileSelected.connect(self.gpxFileChanged)
         self._left_pane.addWidget(self._gpx_file_config)
 
+        self._gps_photo_available_checkbox = QCheckBox("GPS Photo for sync available")
+        self._gps_photo_available_checkbox.setChecked(False)
+        self._gps_photo_available_checkbox.stateChanged.connect(lambda: self.gpsPhotoAvailableChanged.emit(self._gps_photo_available_checkbox.isChecked()))
+        self._gps_photo_available_checkbox.stateChanged.connect(self.enableDisableGPSPhotoFields)
+        self._left_pane.addWidget(self._gps_photo_available_checkbox)
+
         self._gps_photo_config = ConfigFileSelector(self, label_text="GPS Photo")
         self._gps_photo_config.fileSelected.connect(self.gpsPhotoChanged)
         self._left_pane.addWidget(self._gps_photo_config)
@@ -77,6 +85,19 @@ class MainWindow(QWidget):
         self._gps_timezone_selector.indexChanged.connect(self.gpsTimezoneIndexChanged)
         self._gps_timezone_selector.currentIndex = self._timezone_index_default
         self._left_pane.addWidget(self._gps_timezone_selector)
+
+
+        self._camera_timezone_selector = ConfigSelector(options=["Option 1", "Option 2", "Option 3"],
+                                                        label="Camera timezone")
+        self._camera_timezone_selector.indexChanged.connect(self.cameraTimezoneIndexChanged)
+        self._camera_timezone_selector.currentIndex = self._timezone_index_default
+        self._left_pane.addWidget(self._camera_timezone_selector)
+
+        # Initially disable GPS photo fields since checkbox is unchecked
+        self._gps_photo_config.setEnabled(False)
+        self._image_preview.setEnabled(False)
+        self._gps_datetime_config.setEnabled(False)
+        self._gps_timezone_selector.setEnabled(False)
 
         self._output_dir_config = ConfigDirectory(self, label_text="Output directory")
         self._output_dir_config.directoryChanged.connect(self.outputDirChanged)
@@ -214,6 +235,21 @@ class MainWindow(QWidget):
         else:
             self._middle_widget.hide()
 
+    @Slot()
+    def enableDisableGPSPhotoFields(self):
+        enabled = self._gps_photo_available_checkbox.isChecked()
+        self._gps_photo_config.setEnabled(enabled)
+        self._image_preview.setEnabled(enabled)
+        self._gps_datetime_config.setEnabled(enabled)
+        self._gps_timezone_selector.setEnabled(enabled)
+        if not enabled:
+            # Clear the GPS photo fields if disabled
+            self._gps_photo_config.value = ""
+            self._image_preview.setFilepath("")
+            self._gps_datetime_config.date = ""
+            self._gps_datetime_config.time = ""
+            self._gps_timezone_selector.currentIndex = self._timezone_index_default
+
     @Slot(str)
     def setDefaultPath(self, default_path: str):
         self._gps_photo_config.defaultPath = default_path
@@ -232,15 +268,18 @@ class MainWindow(QWidget):
 
     def setTimezoneOptions(self, options: list):
         self._gps_timezone_selector.setOptions(options)
+        self._camera_timezone_selector.setOptions(options)
 
     @Slot()
     def clearForm(self):
         self._input_dir_config.value = ""
         self._gpx_file_config.value = ""
+        self._gps_photo_available_checkbox.setChecked(False)
         self._gps_photo_config.value = ""
         self._gps_datetime_config.date = ""
         self._gps_datetime_config.time = ""
-        self._gps_timezone_selector.currentIndex = 0
+        self._gps_timezone_selector.currentIndex = self._timezone_index_default
+        self._camera_timezone_selector.currentIndex = self._timezone_index_default
         self._output_dir_config.value = ""
         self._ifdo_export_checkbox.setChecked(False)
 
@@ -262,6 +301,7 @@ class MainWindow(QWidget):
         self._timezone_index_default = index
         if reset:
             self._gps_timezone_selector.currentIndex = index
+            self._camera_timezone_selector.currentIndex = index
     
     def manuallyTriggerFieldSignals(self):
         self._gps_datetime_config.dateChanged.emit(self._gps_datetime_config.date)
