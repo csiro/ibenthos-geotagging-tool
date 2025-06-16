@@ -224,6 +224,10 @@ class MainController(QObject):
         self._app_view.ifdoExportChanged.connect(self._app_view.showIFDODetails)
         self._app_view.gpsPhotoChanged.connect(self._app_view._image_preview.setFilepath)
 
+        # Connect menu actions
+        self._app_view.aboutTriggered.connect(self.show_about)
+        self._app_view.documentationTriggered.connect(self._app_view.OpenDocumentationURL)
+
 
         # Set up configs into view
         default_window_title = self._app_view.windowTitle()
@@ -319,6 +323,14 @@ class MainController(QObject):
             self._feedback.addFeedbackLine("Geotagging images assuming camera and GPS times are synchronized...")
         self._feedback.addFeedbackLine("Processing images...")
 
+    @Slot()
+    def show_about(self):
+        """Show the About dialog with version and build information."""
+        self._app_view.showAboutDialog(
+            version=self._config.version, 
+            build_hash=self._config.buildHash
+        )
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
@@ -332,11 +344,11 @@ if __name__ == "__main__":
     # Determine if we're a package or running as a script
     if getattr(sys, "frozen", False):
         logger.info("Running as a package")
-        app_path = Path(sys._MEIPASS)
+        app_path = Path(sys._MEIPASS) # pylint: disable=protected-access
         if sys.platform == "win32":
-            exiftool_path = str(app_path / "bin" / "exiftool.exe")
+            EXIFTOOL_PATH = str(app_path / "bin" / "exiftool.exe")
         else:
-            exiftool_path = str(app_path / "bin" / "exiftool")
+            EXIFTOOL_PATH = str(app_path / "bin" / "exiftool")
         # Read the git hash from the build_id.txt file
         build_id_path = app_path / "build_id.txt"
         if build_id_path.exists():
@@ -357,9 +369,9 @@ if __name__ == "__main__":
         # Probably developing, safe to assume we're in the development dir
         app_path = Path(os.path.dirname(os.path.realpath(__file__)))
         if sys.platform == "darwin":
-            exiftool_path = str(app_path / ".." / "Image-ExifTool-13.29" / "exiftool")
+            EXIFTOOL_PATH = str(app_path / ".." / "Image-ExifTool-13.29" / "exiftool")
         elif sys.platform == "win32":
-            exiftool_path = str(app_path / ".." / "exiftool-13.29_64" / "exiftool.exe")
+            EXIFTOOL_PATH = str(app_path / ".." / "exiftool-13.29_64" / "exiftool.exe")
         else:
             print(sys.platform)
             raise NotImplementedError("This platform is not currently supported")
@@ -369,7 +381,7 @@ if __name__ == "__main__":
                                 model=user_input_model,
                                 config=config_model,
                                 feedback=feedback_model,
-                                exec_path=exiftool_path)
+                                exec_path=EXIFTOOL_PATH)
 
     main_view.show()
     sys.exit(app.exec())

@@ -1,16 +1,19 @@
 import logging
+import webbrowser
 
 from PySide6.QtCore import Qt, Signal, Slot
+from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (QApplication, QCheckBox, QHBoxLayout, QLabel,
-                               QProgressBar, QVBoxLayout, QWidget)
+                               QMainWindow, QProgressBar, QVBoxLayout, QWidget)
 
-from .components import (ConfigDateTime, ConfigDirectory, ConfigFileSelector,
-                         ConfigMultilineTextBox, ConfigSelector, ConfigTextBox,
-                         ControlRow, FeedbackViewer, ImagePreview)
+from .components import (AboutDialog, ConfigDateTime, ConfigDirectory,
+                         ConfigFileSelector, ConfigMultilineTextBox,
+                         ConfigSelector, ConfigTextBox, ControlRow,
+                         FeedbackViewer, ImagePreview)
 
 logger = logging.getLogger(__name__)
 
-class MainWindow(QWidget):
+class MainWindow(QMainWindow):
     inputDirChanged = Signal(str)
     gpxFileChanged = Signal(str)
     gpsPhotoAvailableChanged = Signal(bool)
@@ -36,6 +39,8 @@ class MainWindow(QWidget):
     imageAbstractChanged = Signal(str)
     clearFormTriggered = Signal()
     startProcessingTriggered = Signal()
+    aboutTriggered = Signal()
+    documentationTriggered = Signal()
 
     def __init__(self):
         super().__init__()
@@ -43,7 +48,13 @@ class MainWindow(QWidget):
         self.setGeometry(100, 100, 1200, 600)
         self._timezone_index_default = 0
 
-        self._parent_layout = QVBoxLayout()
+        # Create menubar
+        self._create_menubar()
+
+        # Create central widget and layout
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        self._parent_layout = QVBoxLayout(central_widget)
 
         # Create a horizontal 3 pane layout
         self._main_layout = QHBoxLayout()
@@ -225,8 +236,24 @@ class MainWindow(QWidget):
         self._parent_layout.addLayout(self._main_layout)
         self._parent_layout.addWidget(self._progress_bar)
 
-        # Set the layout for the main window
-        self.setLayout(self._parent_layout)
+    def _create_menubar(self):
+        """Create the application menubar with Help menu."""
+        menubar = self.menuBar()
+        
+        # Create Help menu
+        help_menu = menubar.addMenu("&Help")
+        
+        # About action
+        about_action = QAction("&About", self)
+        about_action.setStatusTip("Show information about the application")
+        about_action.triggered.connect(self.aboutTriggered.emit)
+        help_menu.addAction(about_action)
+        
+        # Documentation action
+        documentation_action = QAction("&Documentation", self)
+        documentation_action.setStatusTip("Open application documentation")
+        documentation_action.triggered.connect(self.documentationTriggered.emit)
+        help_menu.addAction(documentation_action)
 
     @Slot(bool)
     def showIFDODetails(self, show: bool):
@@ -320,7 +347,14 @@ class MainWindow(QWidget):
         self._image_objective.valueChanged.emit(self._image_objective.value)
         self._image_abstract.valueChanged.emit(self._image_abstract.value)
 
+    def showAboutDialog(self, version="Unknown", build_hash="Unknown"):
+        """Show the About dialog."""
+        about_dialog = AboutDialog(self, version=version, build_hash=build_hash)
+        about_dialog.exec()
 
+    def OpenDocumentationURL(self, url="https://github.com/csiro/ibenthos-geotagging-tool"):
+        """Open documentation URL in default browser."""
+        webbrowser.open(url)
 
 if __name__ == "__main__":
     app = QApplication([])

@@ -2,9 +2,10 @@ import os
 
 from PySide6.QtCore import QRegularExpression, QSize, Qt, Signal, Slot
 from PySide6.QtGui import QPixmap, QRegularExpressionValidator, QTextOption
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout,
-                               QLabel, QLineEdit, QPushButton, QScrollArea,
-                               QSizePolicy, QTextEdit, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox,
+                               QFileDialog, QHBoxLayout, QLabel, QLineEdit,
+                               QPushButton, QScrollArea, QSizePolicy,
+                               QTextEdit, QVBoxLayout, QWidget)
 
 
 class ConfigDateTime(QWidget):
@@ -436,6 +437,52 @@ class ControlRow(QWidget):
         layout.addWidget(self.startButton, alignment=Qt.AlignHCenter)
 
         self.setLayout(layout)
+
+class AboutDialog(QDialog):
+    """About dialog for the application."""
+
+    def __init__(self, parent=None, version="Unknown", build_hash="Unknown"):
+        super().__init__(parent)
+        self.setWindowTitle("About iBenthos Geotagging Tool")
+        self.setFixedSize(400, 300)
+
+        layout = QVBoxLayout(self)
+
+        # Application name and version
+        title_label = QLabel("iBenthos Geotagging Tool")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_label.setStyleSheet("font-size: 18px; font-weight: bold; margin: 10px;")
+        layout.addWidget(title_label)
+
+        version_label = QLabel(f"Version: {version}")
+        version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(version_label)
+
+        build_label = QLabel(f"Build: {build_hash}")
+        build_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(build_label)
+
+        # Description
+        description = QLabel(
+            "A PySide6 desktop application that helps researchers geotag underwater photos "
+            "using GPS data from transect files. The application allows users to synchronize "
+            "underwater images with GPS tracks and optionally export metadata in iFDO format "
+            "for marine research."
+        )
+        description.setWordWrap(True)
+        description.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        description.setStyleSheet("margin: 20px;")
+        layout.addWidget(description)
+
+        # Copyright and license
+        copyright_label = QLabel("© 2025 CSIRO")
+        copyright_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(copyright_label)
+
+        # OK button
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
+        button_box.accepted.connect(self.accept)
+        layout.addWidget(button_box)
 
 if __name__ == "__main__":
     from PySide6.QtWidgets import QApplication, QVBoxLayout
