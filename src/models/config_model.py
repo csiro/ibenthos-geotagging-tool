@@ -12,6 +12,7 @@ class ConfigModel(QObject):
         super().__init__()
         self._gps_timezone_options = []
         self._build_hash = "0"
+        self._version = "0.0.0"
         self._use_workaround = False
 
     @Property(list, notify=gpsTimezoneOptionsChanged)
@@ -32,6 +33,15 @@ class ConfigModel(QObject):
     def buildHash(self, value):
         if self._build_hash != value:
             self._build_hash = value
+
+    @Property(str)
+    def version(self):
+        return self._version
+    
+    @version.setter
+    def version(self, value):
+        if self._version != value:
+            self._version = value
 
     @Property(bool)
     def useWorkaround(self):

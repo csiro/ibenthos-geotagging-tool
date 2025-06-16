@@ -8,7 +8,12 @@ New-Item -ItemType Directory -Path $BUILD_DIR_NAME -Force
 
 # Save the current git commit hash
 $buildId = git rev-parse HEAD
-$buildId | Out-File -Encoding ascii -NoNewline "$BUILD_DIR_NAME\build_id.txt"
+$buildId | Out-File -Encoding UTF8 -NoNewline "$BUILD_DIR_NAME\build_id.txt"
+
+# Grab the current version from pyproject.toml
+$versionLine = (Get-Content pyproject.toml) -match 'version\s*=\s*"(.*)"'
+"$versionLine" -match 'version\s*=\s*"(.*)"'
+$Matches[1] | Out-File  -Encoding UTF8 -NoNewline "$BUILD_DIR_NAME\version.txt"
 
 # Download exiftool
 Invoke-WebRequest -Uri "https://exiftool.org/$EXIFTOOL_ARCHIVE_NAME.zip" -OutFile "$BUILD_DIR_NAME\$EXIFTOOL_ARCHIVE_NAME.zip"

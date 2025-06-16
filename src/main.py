@@ -226,9 +226,8 @@ class MainController(QObject):
 
 
         # Set up configs into view
-        if self._config.buildHash != "0":
-            default_window_title = self._app_view.windowTitle()
-            self._app_view.setWindowTitle(f"{default_window_title} - {self._config.buildHash}")
+        default_window_title = self._app_view.windowTitle()
+        self._app_view.setWindowTitle(f"{default_window_title} - v{self._config.version}")
         self._app_view.setTimezoneOptions(self._config.gpsTimezoneOptions)
         if self._config.useWorkaround:
             self._app_view.setTimezoneIndexDefault(15, reset=True)
@@ -338,13 +337,22 @@ if __name__ == "__main__":
             exiftool_path = str(app_path / "bin" / "exiftool.exe")
         else:
             exiftool_path = str(app_path / "bin" / "exiftool")
+        # Read the git hash from the build_id.txt file
         build_id_path = app_path / "build_id.txt"
         if build_id_path.exists():
-            with open(build_id_path, "r") as f:
+            with open(build_id_path, "r", encoding="utf-8") as f:
                 config_model.buildHash = f.read().strip()
             logger.info("Build ID: %s", config_model.buildHash)
         else:
             logger.warning("Build ID file not found.")
+        # Read the version from the version.txt file
+        version_path = app_path / "version.txt"
+        if version_path.exists():
+            with open(version_path, "r", encoding="utf-8") as f:
+                config_model.version = f.read().strip()
+            logger.info("Version: %s", config_model.version)
+        else:
+            logger.warning("Version file not found.")
     else:
         # Probably developing, safe to assume we're in the development dir
         app_path = Path(os.path.dirname(os.path.realpath(__file__)))
@@ -357,9 +365,9 @@ if __name__ == "__main__":
             raise NotImplementedError("This platform is not currently supported")
 
 
-    controller = MainController(app_view=main_view, 
-                                model=user_input_model, 
-                                config=config_model, 
+    controller = MainController(app_view=main_view,
+                                model=user_input_model,
+                                config=config_model,
                                 feedback=feedback_model,
                                 exec_path=exiftool_path)
 

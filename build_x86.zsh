@@ -13,6 +13,9 @@ mkdir -p $BUILD_DIR_NAME
 # Grab the git hash of the current commit
 git rev-parse HEAD > $BUILD_DIR_NAME/build_id.txt
 
+# Grab the current version from pyproject.toml
+cat pyproject.toml | grep "version = " | sed -E "s/version = \"(.*)\"/\1/" | tr -d '\n' > $BUILD_DIR_NAME/version.txt
+
 # Download exiftool
 wget -O "$BUILD_DIR_NAME/$EXIFTOOL_ARCHIVE_NAME" "https://exiftool.org/$EXIFTOOL_ARCHIVE_NAME"
 tar -xzvf $BUILD_DIR_NAME/$EXIFTOOL_ARCHIVE_NAME -C $BUILD_DIR_NAME
