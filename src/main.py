@@ -18,6 +18,7 @@ from PySide6.QtWidgets import QApplication
 import models
 import views
 from ifdo import IFDOModel
+from imagekmlgen import ImageKMLGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +84,7 @@ class GeotagWorker(QObject):
 
     def __init__(self, tagger: PhotoTransectGPSTagger, import_dir: Path, export_dir: Path,
                        ifdo_model: Optional[IFDOModel] = None, exec_path: Optional[str] = None,
-                       tz_override: Optional[str] = None):
+                       tz_override: Optional[str] = None, kml_export: bool = False):
         super().__init__()
         self.tagger = tagger
         self.import_dir = import_dir
@@ -92,6 +93,7 @@ class GeotagWorker(QObject):
 
         self.ifdo_model = ifdo_model
         self.exec_path = exec_path
+        self.kml_export = kml_export
 
     def add_to_ifdo(self, relative_fn: str, exif_data: dict, gps_tags: dict):
         image_datetime = datetime.datetime.strptime(f'{gps_tags["Exif:GPSDateStamp"]} {gps_tags["Exif:GPSTimeStamp"]}',
@@ -134,9 +136,11 @@ class GeotagWorker(QObject):
 
         total_images = len(image_list)
 
-        tally = 0
+        if self.kml_export:
+            kml_gen = ImageKMLGenerator(self.export_dir)
+
         with ExifToolHelper(executable=self.exec_path) as et:
-            for image_fn in image_list:
+            for idx, image_fn in enumerate(image_list):
                 relative_fn = image_fn.relative_to(self.import_dir)
                 exif_data = et.get_metadata(str(image_fn))[0]
                 try:
@@ -168,13 +172,23 @@ class GeotagWorker(QObject):
                 if self.ifdo_model is not None:
                     self.add_to_ifdo(relative_fn, exif_data, gps_tags)
                 logger.info("Image %s geotagged and saved to %s", image_fn, save_fn)
-                tally += 1
-                self.progress.emit(tally, total_images)
+                if self.kml_export:
+                    try:
+                        kml_gen.add_image_point(save_fn)
+                    except KeyError as e:
+                        logger.error(f"Missing GPS data in image {image_fn}: {e}")
+                        self.error_msgs.emit(f"Missing GPS data in image {image_fn}: {e}")
+                self.progress.emit(idx, total_images)
         # Save the IFDO model to a file
         if self.ifdo_model is not None:
             ifdo_path = self.export_dir / "ifdo.yml"
             self.ifdo_model.export_ifdo_yaml(str(ifdo_path))
             logger.info("IFDO file saved to %s", ifdo_path)
+
+        # Save KML file if required
+        if self.kml_export:
+            kml_gen.save()
+            logger.info("KML file saved to %s", self.export_dir / 'images.kml')
         self.finished.emit("Finished geotagging images.")
 
 class MainController(QObject):
@@ -217,11 +231,13 @@ class MainController(QObject):
         self._app_view.imageObjectiveChanged.connect(lambda x: setattr(self._model, 'imageObjective', x))
         self._app_view.imageAbstractChanged.connect(lambda x: setattr(self._model, 'imageAbstract', x))
         self._app_view.startProcessingTriggered.connect(self.geotag)
+        self._app_view.kmlExportChanged.connect(lambda x: setattr(self._model, 'exportKML', x))
 
         # Connect internal view logic
         self._app_view.clearFormTriggered.connect(self._app_view.clearForm)
         self._app_view.inputDirChanged.connect(self._app_view.setDefaultPath)
-        self._app_view.ifdoExportChanged.connect(self._app_view.showIFDODetails)
+        self._app_view.attributionExportChanged.connect(self._app_view.enableDisableAttributionFields)
+        self._app_view.ifdoExportChanged.connect(self._app_view.enableDisableIFDODetails)
         self._app_view.gpsPhotoChanged.connect(self._app_view._image_preview.setFilepath)
 
         # Connect menu actions
@@ -305,7 +321,8 @@ class MainController(QObject):
         import_dir = Path(self._model.importDirectory.replace("file://", ""))
         export_dir = Path(self._model.exportDirectory.replace("file://", ""))
         self._worker = GeotagWorker(tagger, import_dir, export_dir, ifdo_model=ifdo_model,
-                                    exec_path=self._exec_path, tz_override=tz_override)
+                                    exec_path=self._exec_path, tz_override=tz_override,
+                                    kml_export=self._model.exportKML)
         self._worker.moveToThread(self._workerthread)
         self._workerthread.started.connect(self._worker.run)
         self._worker.progress.connect(self._feedback.updateProgress)

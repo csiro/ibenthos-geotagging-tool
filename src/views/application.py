@@ -24,6 +24,7 @@ class MainWindow(QMainWindow):
     cameraTimezoneIndexChanged = Signal(int)
     outputDirChanged = Signal(str)
     ifdoExportChanged = Signal(bool)
+    kmlExportChanged = Signal(bool)
     imageSetNameChanged = Signal(str)
     contextChanged = Signal(str)
     projectNameChanged = Signal(str)
@@ -41,6 +42,7 @@ class MainWindow(QMainWindow):
     startProcessingTriggered = Signal()
     aboutTriggered = Signal()
     documentationTriggered = Signal()
+    attributionExportChanged = Signal(bool)
 
     def __init__(self):
         super().__init__()
@@ -72,6 +74,16 @@ class MainWindow(QMainWindow):
         self._gpx_file_config.fileSelected.connect(self.gpxFileChanged)
         self._left_pane.addWidget(self._gpx_file_config)
 
+        self._camera_timezone_selector = ConfigSelector(options=["Option 1", "Option 2", "Option 3"],
+                                                        label="Camera timezone")
+        self._camera_timezone_selector.indexChanged.connect(self.cameraTimezoneIndexChanged)
+        self._camera_timezone_selector.currentIndex = self._timezone_index_default
+        self._left_pane.addWidget(self._camera_timezone_selector)
+
+        self._output_dir_config = ConfigDirectory(self, label_text="Output directory")
+        self._output_dir_config.directoryChanged.connect(self.outputDirChanged)
+        self._left_pane.addWidget(self._output_dir_config)
+
         self._gps_photo_available_checkbox = QCheckBox("GPS Photo for sync available")
         self._gps_photo_available_checkbox.setChecked(False)
         self._gps_photo_available_checkbox.stateChanged.connect(lambda: self.gpsPhotoAvailableChanged.emit(self._gps_photo_available_checkbox.isChecked()))
@@ -98,58 +110,26 @@ class MainWindow(QMainWindow):
         self._left_pane.addWidget(self._gps_timezone_selector)
 
 
-        self._camera_timezone_selector = ConfigSelector(options=["Option 1", "Option 2", "Option 3"],
-                                                        label="Camera timezone")
-        self._camera_timezone_selector.indexChanged.connect(self.cameraTimezoneIndexChanged)
-        self._camera_timezone_selector.currentIndex = self._timezone_index_default
-        self._left_pane.addWidget(self._camera_timezone_selector)
-
         # Initially disable GPS photo fields since checkbox is unchecked
         self._gps_photo_config.setEnabled(False)
         self._image_preview.setEnabled(False)
         self._gps_datetime_config.setEnabled(False)
         self._gps_timezone_selector.setEnabled(False)
 
-        self._output_dir_config = ConfigDirectory(self, label_text="Output directory")
-        self._output_dir_config.directoryChanged.connect(self.outputDirChanged)
-        self._left_pane.addWidget(self._output_dir_config)
-
-        self._ifdo_export_checkbox = QCheckBox("Export as an iFDO dataset")
-        self._ifdo_export_checkbox.setChecked(False)
-        self._ifdo_export_checkbox.stateChanged.connect(lambda: self.ifdoExportChanged.emit(self._ifdo_export_checkbox.isChecked()))
-        self._left_pane.addWidget(self._ifdo_export_checkbox)
-
         self._main_layout.addLayout(self._left_pane)
 
         # Middle pane
         self._middle_pane = QVBoxLayout()
-        label = QLabel("iFDO details")
-        label.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
-        self._middle_pane.addWidget(label)
-        self._image_set_name = ConfigTextBox(self)
-        self._image_set_name.label = "Image set name"
-        self._image_set_name.defaultValue = "i.e. Site and date identifier"
-        self._image_set_name.valueChanged.connect(self.imageSetNameChanged)
-        self._middle_pane.addWidget(self._image_set_name)
+        self._kml_export = QCheckBox("Export a KML file")
+        self._kml_export.setChecked(False)
+        self._kml_export.stateChanged.connect(lambda: self.kmlExportChanged.emit(self._kml_export.isChecked()))
+        self._middle_pane.addWidget(self._kml_export)
 
-        self._context = ConfigTextBox(self)
-        self._context.label = "Context"
-        self._context.defaultValue = "i.e. why is this being collected?"
-        self._context.valueChanged.connect(self.contextChanged)
-        self._middle_pane.addWidget(self._context)
-
-        self._project_name = ConfigTextBox(self)
-        self._project_name.label = "Project name"
-        self._project_name.defaultValue = "i.e. iBenthos"
-        self._project_name.valueChanged.connect(self.projectNameChanged)
-        self._middle_pane.addWidget(self._project_name)
-
-        self._campaign_name = ConfigTextBox(self)
-        self._campaign_name.label = "Campaign name"
-        self._campaign_name.defaultValue = "i.e. Voyage or trip name"
-        self._campaign_name.valueChanged.connect(self.campaignNameChanged)
-        self._middle_pane.addWidget(self._campaign_name)
+        self._attribution_export = QCheckBox("Add attribution metadata")
+        self._attribution_export.setChecked(False)
+        self._attribution_export.stateChanged.connect(lambda: self.attributionExportChanged.emit(self._attribution_export.isChecked()))
+        self._middle_pane.addWidget(self._attribution_export)
 
         self._pi_name = ConfigTextBox(self, width_ratio=0.5)
         self._pi_name.label = "Principal Investigator's name"
@@ -188,6 +168,43 @@ class MainWindow(QMainWindow):
         self._license.valueChanged.connect(self.licenseChanged)
         self._middle_pane.addWidget(self._license)
 
+        self._ifdo_export_checkbox = QCheckBox("Export an iFDO file")
+        self._ifdo_export_checkbox.setChecked(False)
+        self._ifdo_export_checkbox.stateChanged.connect(lambda: self.ifdoExportChanged.emit(self._ifdo_export_checkbox.isChecked()))
+        self._middle_pane.addWidget(self._ifdo_export_checkbox)
+
+        self._attribution_group = [self._pi_name, self._pi_orcid,
+                                   self._collector_name, self._collector_orcid,
+                                   self._copyright_owner, self._license,
+                                   self._ifdo_export_checkbox]
+
+        for widget in self._attribution_group:
+            widget.setEnabled(False)
+
+        self._image_set_name = ConfigTextBox(self)
+        self._image_set_name.label = "Image set name"
+        self._image_set_name.defaultValue = "i.e. Site and date identifier"
+        self._image_set_name.valueChanged.connect(self.imageSetNameChanged)
+        self._middle_pane.addWidget(self._image_set_name)
+
+        self._context = ConfigTextBox(self)
+        self._context.label = "Context"
+        self._context.defaultValue = "i.e. why is this being collected?"
+        self._context.valueChanged.connect(self.contextChanged)
+        self._middle_pane.addWidget(self._context)
+
+        self._project_name = ConfigTextBox(self)
+        self._project_name.label = "Project name"
+        self._project_name.defaultValue = "i.e. iBenthos"
+        self._project_name.valueChanged.connect(self.projectNameChanged)
+        self._middle_pane.addWidget(self._project_name)
+
+        self._campaign_name = ConfigTextBox(self)
+        self._campaign_name.label = "Campaign name"
+        self._campaign_name.defaultValue = "i.e. Voyage or trip name"
+        self._campaign_name.valueChanged.connect(self.campaignNameChanged)
+        self._middle_pane.addWidget(self._campaign_name)
+
         self._distance_ag = ConfigTextBox(self, width_ratio=0.7)
         self._distance_ag.label = "Distance above ground (m)"
         self._distance_ag.defaultValue = "i.e. 0.8"
@@ -206,13 +223,22 @@ class MainWindow(QMainWindow):
         self._image_abstract.valueChanged.connect(self.imageAbstractChanged)
         self._middle_pane.addWidget(self._image_abstract)
 
-        self._middle_widget = QWidget()
-        self._middle_widget.setLayout(self._middle_pane)
-        self._middle_widget.setFixedWidth(400)
-        self._middle_widget.setMinimumWidth(400)
+        self._ifdo_group = [self._image_set_name, self._context,
+                            self._project_name, self._campaign_name,
+                            self._distance_ag, self._image_objective,
+                            self._image_abstract]
 
-        self._main_layout.addWidget(self._middle_widget)
-        self._middle_widget.hide()
+        for widget in self._ifdo_group:
+            widget.setEnabled(False)
+
+        # self._middle_widget = QWidget()
+        # self._middle_widget.setLayout(self._middle_pane)
+        # self._middle_widget.setFixedWidth(400)
+        # self._middle_widget.setMinimumWidth(400)
+
+        # self._main_layout.addWidget(self._middle_widget)
+        # self._middle_widget.setEnabled(False)
+        self._main_layout.addLayout(self._middle_pane)
 
         # Right pane
         self._right_pane = QVBoxLayout()
@@ -255,12 +281,24 @@ class MainWindow(QMainWindow):
         documentation_action.triggered.connect(self.documentationTriggered.emit)
         help_menu.addAction(documentation_action)
 
-    @Slot(bool)
-    def showIFDODetails(self, show: bool):
-        if show:
-            self._middle_widget.show()
-        else:
-            self._middle_widget.hide()
+    @Slot()
+    def enableDisableAttributionFields(self):
+        enabled = self._attribution_export.isChecked()
+        for widget in self._attribution_group:
+            widget.setEnabled(enabled)
+        if not enabled:
+            self._ifdo_export_checkbox.setChecked(False)
+
+            # if not enabled:
+            #     widget.value = ""
+
+    @Slot()
+    def enableDisableIFDODetails(self):
+        enabled =self._ifdo_export_checkbox.isChecked()
+        for widget in self._ifdo_group:
+            widget.setEnabled(enabled)
+            if not enabled:
+                widget.value = ""  # Clear the field if disabled
 
     @Slot()
     def enableDisableGPSPhotoFields(self):

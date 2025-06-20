@@ -12,9 +12,11 @@ else:
     binaries = [('x86_build/exiftool-13.29_64/exiftool.exe', 'bin'),
                 ('x86_build/exiftool-13.29_64/exiftool_files', 'bin/exiftool_files')]
 tmp_ret = collect_all('dateutil')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+datas += tmp_ret[0]
+binaries += tmp_ret[1]
+hiddenimports += tmp_ret[2]
 
-a = Analysis(
+a = Analysis( # pylint: disable=undefined-variable
     ['src/main.py'],
     pathex=[],
     binaries=binaries,
@@ -27,9 +29,9 @@ a = Analysis(
     noarchive=False,
     optimize=0,
 )
-pyz = PYZ(a.pure)
+pyz = PYZ(a.pure) # pylint: disable=undefined-variable
 
-exe = EXE(
+exe = EXE( # pylint: disable=undefined-variable
     pyz,
     a.scripts,
     [],
@@ -47,7 +49,7 @@ exe = EXE(
     entitlements_file=None,
     icon='logo.icns',
 )
-coll = COLLECT(
+coll = COLLECT( # pylint: disable=undefined-variable
     exe,
     a.binaries,
     a.datas,
@@ -56,7 +58,7 @@ coll = COLLECT(
     upx_exclude=[],
     name='iBenthos Geotagging Tool',
 )
-app = BUNDLE(
+app = BUNDLE( # pylint: disable=undefined-variable
     coll,
     name='iBenthos Geotagging Tool.app',
     icon='logo.icns',

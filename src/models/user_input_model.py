@@ -31,6 +31,7 @@ class UserInputModel(QObject):
     distanceAboveGroundChanged = Signal(str)
     imageObjectiveChanged = Signal(str)
     imageAbstractChanged = Signal(str)
+    exportKMLChanged = Signal(bool)
 
     def __init__(self):
         super().__init__()
@@ -57,6 +58,7 @@ class UserInputModel(QObject):
         self._distance_above_ground = ""
         self._image_objective = ""
         self._image_abstract = ""
+        self._kml_enable = False
 
     @Property(str, notify=importDirectoryChanged)
     def importDirectory(self):
@@ -288,6 +290,15 @@ class UserInputModel(QObject):
             self._image_abstract = abstract
             self.imageAbstractChanged.emit(abstract)
 
+    @Property(bool, notify=exportKMLChanged)
+    def exportKML(self):
+        return self._kml_enable
+
+    @exportKML.setter
+    def exportKML(self, kml_enable):
+        if self._kml_enable != kml_enable:
+            self._kml_enable = kml_enable
+            self.exportKMLChanged.emit(kml_enable)
     @Slot()
     def clearForm(self):
         self.importDirectory = ""
@@ -313,6 +324,7 @@ class UserInputModel(QObject):
         self.distanceAboveGround = ""
         self.imageObjective = ""
         self.imageAbstract = ""
+        self.exportKML = False
 
     @Slot(result=bool)
     def validateForm(self):
@@ -348,7 +360,8 @@ class UserInputModelValidator:
             self._validate_distance_above_ground : [model.ifdoEnable, model.distanceAboveGround],
             self._validate_image_objective : [model.ifdoEnable, model.imageObjective],
             self._validate_image_abstract : [model.ifdoEnable, model.imageAbstract],
-            self._validate_input_path_not_output_path: [model.importDirectory,model.exportDirectory]
+            self._validate_input_path_not_output_path: [model.importDirectory,model.exportDirectory],
+            self._validate_export_kml: [model.exportKML]
         }
         errors = list({x(*y) for x, y in main_validators.items()})
         if len(errors) > 1:
@@ -536,4 +549,8 @@ class UserInputModelValidator:
     def _validate_input_path_not_output_path(input_path: str, output_path: str) -> Optional[str]:
         if input_path == output_path:
             return "Input directory and output directory cannot be the same"
+        return None
+
+    @staticmethod
+    def _validate_export_kml(export_kml: bool) -> Optional[str]:
         return None
