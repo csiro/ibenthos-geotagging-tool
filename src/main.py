@@ -1,3 +1,4 @@
+import copy
 import datetime
 import hashlib
 import logging
@@ -64,8 +65,9 @@ def get_average_image_color(image_data: Image.Image) -> tuple[int, ...]:
         image_data: The loaded image data.
 
     Returns:
-        A list of integers representing the average color of the image in RGB format. Each element in the list
-        corresponds to the average intensity of the Red, Green, and Blue channels, respectively.
+        A list of integers representing the average color of the image in RGB format. Each element
+        in the list corresponds to the average intensity of the Red, Green, and Blue channels,
+        respectively.
 
         Note: If the input image is None, None will be returned.
     """
@@ -94,10 +96,19 @@ class GeotagWorker(QObject):
         self.ifdo_model = ifdo_model
         self.exec_path = exec_path
         self.kml_export = kml_export
+        self.base_tags = {}
+    
+    def set_base_tags(self, base_tags: dict):
+        """
+        Set the base tags for the images. This is used to set common metadata for all images.
+        """
+        self.base_tags = base_tags
 
     def add_to_ifdo(self, relative_fn: str, exif_data: dict, gps_tags: dict):
-        image_datetime = datetime.datetime.strptime(f'{gps_tags["Exif:GPSDateStamp"]} {gps_tags["Exif:GPSTimeStamp"]}',
-                                                    '%Y:%m:%d %H:%M:%S').replace(tzinfo=datetime.UTC)
+        image_datetime = datetime.datetime.strptime(f'{gps_tags["Exif:GPSDateStamp"]} ' + \
+                                                    f'{gps_tags["Exif:GPSTimeStamp"]}',
+                                                    '%Y:%m:%d %H:%M:%S')\
+                                                    .replace(tzinfo=datetime.UTC)
         image_latitude = float(gps_tags["Composite:GPSPosition"].split(" ")[0])
         image_longitude = float(gps_tags["Composite:GPSPosition"].split(" ")[1])
 
@@ -143,8 +154,10 @@ class GeotagWorker(QObject):
             for idx, image_fn in enumerate(image_list):
                 relative_fn = image_fn.relative_to(self.import_dir)
                 exif_data = et.get_metadata(str(image_fn))[0]
+                new_exif_tags = copy.copy(self.base_tags)
                 try:
-                    gps_tags = self.tagger.generate_gps_tags(exif_data, tz_override=self.tz_override)
+                    new_exif_tags |= self.tagger.generate_gps_tags(exif_data, 
+                                                                   tz_override=self.tz_override)
                 except IndexError as e:
                     logger.error(
                         "Image %s not within range of GPX file. Skipping this image.", image_fn
@@ -168,9 +181,9 @@ class GeotagWorker(QObject):
                     logger.error("Failed to create directory %s", save_fn.parent)
                     continue
                 shutil.copy2(image_fn, save_fn)
-                et.set_tags(files=save_fn, tags=gps_tags, params=['-overwrite_original'])
+                et.set_tags(files=save_fn, tags=new_exif_tags, params=['-overwrite_original'])
                 if self.ifdo_model is not None:
-                    self.add_to_ifdo(relative_fn, exif_data, gps_tags)
+                    self.add_to_ifdo(relative_fn, exif_data, new_exif_tags)
                 logger.info("Image %s geotagged and saved to %s", image_fn, save_fn)
                 if self.kml_export:
                     try:
@@ -209,41 +222,56 @@ class MainController(QObject):
         # Connect the signals from the view to the model
         self._app_view.inputDirChanged.connect(lambda x: setattr(self._model, 'importDirectory', x))
         self._app_view.gpxFileChanged.connect(lambda x: setattr(self._model, 'gpxFilepath', x))
-        self._app_view.gpsPhotoAvailableChanged.connect(lambda x: setattr(self._model, 'gpsPhotoAvailable', x))
-        self._app_view.gpsPhotoChanged.connect(lambda x: setattr(self._model, 'gpsPhotoFilepath', x))
+        self._app_view.gpsPhotoAvailableChanged.connect(
+            lambda x: setattr(self._model, 'gpsPhotoAvailable', x))
+        self._app_view.gpsPhotoChanged.connect(
+            lambda x: setattr(self._model, 'gpsPhotoFilepath', x))
         self._app_view.gpsDateChanged.connect(lambda x: setattr(self._model, 'gpsDate', x))
         self._app_view.gpsTimeChanged.connect(lambda x: setattr(self._model, 'gpsTime', x))
-        self._app_view.gpsTimezoneIndexChanged.connect(lambda x: setattr(self._model, 'gpsTimezoneIndex', x))
-        self._app_view.cameraTimezoneIndexChanged.connect(lambda x: setattr(self._model, 'cameraTimezoneIndex', x))
-        self._app_view.outputDirChanged.connect(lambda x: setattr(self._model, 'exportDirectory', x))
+        self._app_view.gpsTimezoneIndexChanged.connect(
+            lambda x: setattr(self._model, 'gpsTimezoneIndex', x))
+        self._app_view.cameraTimezoneIndexChanged.connect(
+            lambda x: setattr(self._model, 'cameraTimezoneIndex', x))
+        self._app_view.outputDirChanged.connect(
+            lambda x: setattr(self._model, 'exportDirectory', x))
         self._app_view.ifdoExportChanged.connect(lambda x: setattr(self._model, 'ifdoEnable', x))
-        self._app_view.imageSetNameChanged.connect(lambda x: setattr(self._model, 'imageSetName', x))
+        self._app_view.imageSetNameChanged.connect(
+            lambda x: setattr(self._model, 'imageSetName', x))
         self._app_view.contextChanged.connect(lambda x: setattr(self._model, 'imageContext', x))
         self._app_view.projectNameChanged.connect(lambda x: setattr(self._model, 'projectName', x))
-        self._app_view.campaignNameChanged.connect(lambda x: setattr(self._model, 'campaignName', x))
+        self._app_view.campaignNameChanged.connect(
+            lambda x: setattr(self._model, 'campaignName', x))
         self._app_view.piNameChanged.connect(lambda x: setattr(self._model, 'piName', x))
         self._app_view.piOrcidChanged.connect(lambda x: setattr(self._model, 'piORCID', x))
-        self._app_view.collectorNameChanged.connect(lambda x: setattr(self._model, 'collectorName', x))
-        self._app_view.collectorOrcidChanged.connect(lambda x: setattr(self._model, 'collectorORCID', x))
-        self._app_view.copyrightOwnerChanged.connect(lambda x: setattr(self._model, 'organisation', x))
+        self._app_view.collectorNameChanged.connect(
+            lambda x: setattr(self._model, 'collectorName', x))
+        self._app_view.collectorOrcidChanged.connect(
+            lambda x: setattr(self._model, 'collectorORCID', x))
+        self._app_view.copyrightOwnerChanged.connect(
+            lambda x: setattr(self._model, 'organisation', x))
         self._app_view.licenseChanged.connect(lambda x: setattr(self._model, 'license', x))
-        self._app_view.distanceAGChanged.connect(lambda x: setattr(self._model, 'distanceAboveGround', x))
-        self._app_view.imageObjectiveChanged.connect(lambda x: setattr(self._model, 'imageObjective', x))
-        self._app_view.imageAbstractChanged.connect(lambda x: setattr(self._model, 'imageAbstract', x))
+        self._app_view.distanceAGChanged.connect(
+            lambda x: setattr(self._model, 'distanceAboveGround', x))
+        self._app_view.imageObjectiveChanged.connect(
+            lambda x: setattr(self._model, 'imageObjective', x))
+        self._app_view.imageAbstractChanged.connect(
+            lambda x: setattr(self._model, 'imageAbstract', x))
         self._app_view.startProcessingTriggered.connect(self.geotag)
         self._app_view.kmlExportChanged.connect(lambda x: setattr(self._model, 'exportKML', x))
+        self._app_view.attributionExportChanged.connect(
+            lambda x: setattr(self._model, 'attributionExport', x))
 
         # Connect internal view logic
         self._app_view.clearFormTriggered.connect(self._app_view.clearForm)
         self._app_view.inputDirChanged.connect(self._app_view.setDefaultPath)
-        self._app_view.attributionExportChanged.connect(self._app_view.enableDisableAttributionFields)
+        self._app_view.attributionExportChanged.connect(\
+            self._app_view.enableDisableAttributionFields)
         self._app_view.ifdoExportChanged.connect(self._app_view.enableDisableIFDODetails)
         self._app_view.gpsPhotoChanged.connect(self._app_view._image_preview.setFilepath)
 
         # Connect menu actions
         self._app_view.aboutTriggered.connect(self.show_about)
         self._app_view.documentationTriggered.connect(self._app_view.OpenDocumentationURL)
-
 
         # Set up configs into view
         default_window_title = self._app_view.windowTitle()
@@ -275,7 +303,8 @@ class MainController(QObject):
 
         # Create the PhotoTransectGPSTagger object
         # Use GPS photo and timestamp only if GPS photo is available
-        tz_override = self._config.gpsTimezoneOptions[self._model.cameraTimezoneIndex].replace("UTC", "")
+        tz_override = self._config.gpsTimezoneOptions[self._model.cameraTimezoneIndex]
+                          .replace("UTC", "")
         if self._model.gpsPhotoAvailable:
             jpg_gps_timestamp = datetime.datetime.fromisoformat(
                 self._model.gpsDate + " " + self._model.gpsTime
@@ -306,8 +335,12 @@ class MainController(QObject):
                                    image_context=self._model.imageContext,
                                    image_project=self._model.projectName,
                                    image_event=self._model.campaignName,
-                                   image_pi=(self._model.piName, self._model.piORCID if self._model.piORCID != "" else "0000-0000-0000-0000"),
-                                   image_creators=[(self._model.collectorName, self._model.collectorORCID if self._model.collectorORCID != "" else "0000-0000-0000-0000")],
+                                   image_pi=(self._model.piName, self._model.piORCID if \
+                                             self._model.piORCID != "" else "0000-0000-0000-0000"),
+                                   image_creators=[(self._model.collectorName, \
+                                                    self._model.collectorORCID if \
+                                                        self._model.collectorORCID != "" else \
+                                                        "0000-0000-0000-0000")],
                                    image_copyright=self._model.organisation,
                                    image_license=self._model.license,
                                    image_abstract=self._model.imageAbstract,
@@ -323,6 +356,26 @@ class MainController(QObject):
         self._worker = GeotagWorker(tagger, import_dir, export_dir, ifdo_model=ifdo_model,
                                     exec_path=self._exec_path, tz_override=tz_override,
                                     kml_export=self._model.exportKML)
+
+        # Set base tags for the images if attribution export is enabled
+        if self._model.attributionExport:
+            if self._model.collectorORCID != "":
+                collector_str = f"{self._model.collectorName} " + \
+                f"(Image collector, ORCID: {self._model.collectorORCID})"
+            else:
+                collector_str = f"{self._model.collectorName} (Image collector)"
+            if self._model.piORCID != "":
+                pi_str = f"{self._model.piName} " + \
+                f"(Principal Investigator, ORCID: {self._model.piORCID})"
+            else:
+                pi_str = f"{self._model.piName} (Principal Investigator)"
+            self._worker.set_base_tags({
+                "Exif:Artist": f"{collector_str}; {pi_str}",
+                "Creator": f"{collector_str}; {pi_str}",
+                "Copyright": f"{self._model.organisation} (Licensed under {self._model.license})"
+            })
+
+        # Move the worker to the thread and connect signals
         self._worker.moveToThread(self._workerthread)
         self._workerthread.started.connect(self._worker.run)
         self._worker.progress.connect(self._feedback.updateProgress)
@@ -331,13 +384,17 @@ class MainController(QObject):
         self._worker.finished.connect(self._feedback.addFeedbackLine)
         self._worker.finished.connect(self._worker.deleteLater)
         self._workerthread.finished.connect(self._workerthread.deleteLater)
+
         # This ensures the progress bar fills up once execution completes
         self._workerthread.finished.connect(lambda : self._app_view.setProgress(100))
+
+        # Start worker thread and update the UI
         self._workerthread.start()
         if self._model.gpsPhotoAvailable:
             self._feedback.addFeedbackLine("Geotagging images using GPS photo synchronization...")
         else:
-            self._feedback.addFeedbackLine("Geotagging images assuming camera and GPS times are synchronized...")
+            self._feedback.addFeedbackLine("Geotagging images assuming camera and GPS times "
+                                           "are synchronized...")
         self._feedback.addFeedbackLine("Processing images...")
 
     @Slot()

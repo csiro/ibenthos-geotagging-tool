@@ -86,7 +86,8 @@ class MainWindow(QMainWindow):
 
         self._gps_photo_available_checkbox = QCheckBox("GPS Photo for sync available")
         self._gps_photo_available_checkbox.setChecked(False)
-        self._gps_photo_available_checkbox.stateChanged.connect(lambda: self.gpsPhotoAvailableChanged.emit(self._gps_photo_available_checkbox.isChecked()))
+        self._gps_photo_available_checkbox.stateChanged.connect(
+            lambda: self.gpsPhotoAvailableChanged.emit(self._gps_photo_available_checkbox.isChecked()))
         self._gps_photo_available_checkbox.stateChanged.connect(self.enableDisableGPSPhotoFields)
         self._left_pane.addWidget(self._gps_photo_available_checkbox)
 
@@ -123,12 +124,14 @@ class MainWindow(QMainWindow):
 
         self._kml_export = QCheckBox("Export a KML file")
         self._kml_export.setChecked(False)
-        self._kml_export.stateChanged.connect(lambda: self.kmlExportChanged.emit(self._kml_export.isChecked()))
+        self._kml_export.stateChanged.connect(
+            lambda: self.kmlExportChanged.emit(self._kml_export.isChecked()))
         self._middle_pane.addWidget(self._kml_export)
 
         self._attribution_export = QCheckBox("Add attribution metadata")
         self._attribution_export.setChecked(False)
-        self._attribution_export.stateChanged.connect(lambda: self.attributionExportChanged.emit(self._attribution_export.isChecked()))
+        self._attribution_export.stateChanged.connect(
+            lambda: self.attributionExportChanged.emit(self._attribution_export.isChecked()))
         self._middle_pane.addWidget(self._attribution_export)
 
         self._pi_name = ConfigTextBox(self, width_ratio=0.5)
@@ -231,13 +234,6 @@ class MainWindow(QMainWindow):
         for widget in self._ifdo_group:
             widget.setEnabled(False)
 
-        # self._middle_widget = QWidget()
-        # self._middle_widget.setLayout(self._middle_pane)
-        # self._middle_widget.setFixedWidth(400)
-        # self._middle_widget.setMinimumWidth(400)
-
-        # self._main_layout.addWidget(self._middle_widget)
-        # self._middle_widget.setEnabled(False)
         self._main_layout.addLayout(self._middle_pane)
 
         # Right pane
@@ -286,11 +282,11 @@ class MainWindow(QMainWindow):
         enabled = self._attribution_export.isChecked()
         for widget in self._attribution_group:
             widget.setEnabled(enabled)
+            if not enabled and isinstance(widget, ConfigTextBox):
+                widget.value = ""
         if not enabled:
             self._ifdo_export_checkbox.setChecked(False)
-
-            # if not enabled:
-            #     widget.value = ""
+            self._license.value = "CC BY 4.0"  # Reset license to default
 
     @Slot()
     def enableDisableIFDODetails(self):
@@ -361,6 +357,8 @@ class MainWindow(QMainWindow):
         self._distance_ag.value = ""
         self._image_objective.value = ""
         self._image_abstract.value = ""
+        self._attribution_export.setChecked(False)
+        self._kml_export.setChecked(False)
     
     def setTimezoneIndexDefault(self, index: int, reset: bool = False):
         self._timezone_index_default = index

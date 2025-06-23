@@ -32,6 +32,7 @@ class UserInputModel(QObject):
     imageObjectiveChanged = Signal(str)
     imageAbstractChanged = Signal(str)
     exportKMLChanged = Signal(bool)
+    attributionExportChanged = Signal(bool)
 
     def __init__(self):
         super().__init__()
@@ -59,6 +60,7 @@ class UserInputModel(QObject):
         self._image_objective = ""
         self._image_abstract = ""
         self._kml_enable = False
+        self._attribution_export = False
 
     @Property(str, notify=importDirectoryChanged)
     def importDirectory(self):
@@ -299,6 +301,17 @@ class UserInputModel(QObject):
         if self._kml_enable != kml_enable:
             self._kml_enable = kml_enable
             self.exportKMLChanged.emit(kml_enable)
+
+    @Property(bool, notify=attributionExportChanged)
+    def attributionExport(self):
+        return self._attribution_export
+
+    @attributionExport.setter
+    def attributionExport(self, attribution_enable):
+        if self._attribution_export != attribution_enable:
+            self._attribution_export = attribution_enable
+            self.attributionExportChanged.emit(attribution_enable)
+
     @Slot()
     def clearForm(self):
         self.importDirectory = ""
@@ -325,6 +338,7 @@ class UserInputModel(QObject):
         self.imageObjective = ""
         self.imageAbstract = ""
         self.exportKML = False
+        self.attributionExport = False
 
     @Slot(result=bool)
     def validateForm(self):
@@ -346,22 +360,23 @@ class UserInputModelValidator:
             self._validate_gps_timezone : [model.gpsTimezoneIndex],
             self._validate_camera_timezone : [model.cameraTimezoneIndex],
             self._validate_output_directory : [model.exportDirectory],
+            self._validate_export_kml: [model.exportKML],
+            self._validate_attribution_export: [model.attributionExport],
+            self._validate_pi_name : [model.attributionExport, model.piName],
+            self._validate_pi_orcid : [model.attributionExport, model.piORCID],
+            self._validate_collectors_name : [model.attributionExport, model.collectorName],
+            self._validate_collectors_orcid : [model.attributionExport, model.collectorORCID],
+            self._validate_organisation : [model.attributionExport, model.organisation],
+            self._validate_license : [model.attributionExport, model.license],
             self._validate_ifdo_enable : [model.ifdoEnable],
             self._validate_image_set_name : [model.ifdoEnable, model.imageSetName],
             self._validate_image_context : [model.ifdoEnable, model.imageContext],
             self._validate_project_name : [model.ifdoEnable, model.projectName],
             self._validate_campaign_name : [model.ifdoEnable, model.campaignName],
-            self._validate_pi_name : [model.ifdoEnable, model.piName],
-            self._validate_pi_orcid : [model.ifdoEnable, model.piORCID],
-            self._validate_collectors_name : [model.ifdoEnable, model.collectorName],
-            self._validate_collectors_orcid : [model.ifdoEnable, model.collectorORCID],
-            self._validate_organisation : [model.ifdoEnable, model.organisation],
-            self._validate_license : [model.ifdoEnable, model.license],
             self._validate_distance_above_ground : [model.ifdoEnable, model.distanceAboveGround],
             self._validate_image_objective : [model.ifdoEnable, model.imageObjective],
             self._validate_image_abstract : [model.ifdoEnable, model.imageAbstract],
             self._validate_input_path_not_output_path: [model.importDirectory,model.exportDirectory],
-            self._validate_export_kml: [model.exportKML]
         }
         errors = list({x(*y) for x, y in main_validators.items()})
         if len(errors) > 1:
@@ -459,6 +474,54 @@ class UserInputModelValidator:
         return None
 
     @staticmethod
+    def _validate_export_kml(export_kml: bool) -> Optional[str]:
+        return None
+
+    @staticmethod
+    def _validate_attribution_export(attribution_export: bool) -> Optional[str]:
+        return None
+
+    @staticmethod
+    def _validate_pi_name(attr_enable: bool, pi_name: str) -> Optional[str]:
+        if attr_enable and pi_name == "":
+            return "PI name is empty"
+        return None
+
+    @staticmethod
+    def _validate_pi_orcid(attr_enable: bool, pi_orcid: str) -> Optional[str]:
+        if attr_enable and pi_orcid != "":
+            # ensure that ORCID is correct format
+            if not re.match(r"^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$", pi_orcid):
+                return "Principal Investigator ORCID is not in the correct format"
+        return None
+
+    @staticmethod
+    def _validate_collectors_name(attr_enable: bool, collectors_name: str) -> Optional[str]:
+        if attr_enable and collectors_name == "":
+            return "Collector's name is empty"
+        return None
+    
+    @staticmethod
+    def _validate_collectors_orcid(attr_enable: bool, collectors_orcid: str) -> Optional[str]:
+        if attr_enable and collectors_orcid != "":
+            # ensure that ORCID is correct format
+            if not re.match(r"^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$", collectors_orcid):
+                return "Collector's ORCID is not in the correct format"
+        return None
+
+    @staticmethod
+    def _validate_organisation(attr_enable: bool, organisation: str) -> Optional[str]:
+        if attr_enable and organisation == "":
+            return "Copyright owner is empty"
+        return None
+
+    @staticmethod
+    def _validate_license(attr_enable: bool, license: str) -> Optional[str]:
+        if attr_enable and license == "":
+            return "License is empty"
+        return None
+
+    @staticmethod
     def _validate_ifdo_enable(ifdo_enable: bool) -> Optional[str]:
         return None
 
@@ -487,46 +550,6 @@ class UserInputModelValidator:
         return None
 
     @staticmethod
-    def _validate_pi_name(ifdo_enable: bool, pi_name: str) -> Optional[str]:
-        if ifdo_enable and pi_name == "":
-            return "PI name is empty"
-        return None
-
-    @staticmethod
-    def _validate_pi_orcid(ifdo_enable: bool, pi_orcid: str) -> Optional[str]:
-        if ifdo_enable and pi_orcid != "":
-            # ensure that ORCID is correct format
-            if not re.match(r"^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$", pi_orcid):
-                return "Principal Investigator ORCID is not in the correct format"
-        return None
-
-    @staticmethod
-    def _validate_collectors_name(ifdo_enable: bool, collectors_name: str) -> Optional[str]:
-        if ifdo_enable and collectors_name == "":
-            return "Collector's name is empty"
-        return None
-    
-    @staticmethod
-    def _validate_collectors_orcid(ifdo_enable: bool, collectors_orcid: str) -> Optional[str]:
-        if ifdo_enable and collectors_orcid != "":
-            # ensure that ORCID is correct format
-            if not re.match(r"^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$", collectors_orcid):
-                return "Collector's ORCID is not in the correct format"
-        return None
-
-    @staticmethod
-    def _validate_organisation(ifdo_enable: bool, organisation: str) -> Optional[str]:
-        if ifdo_enable and organisation == "":
-            return "Copyright owner is empty"
-        return None
-
-    @staticmethod
-    def _validate_license(ifdo_enable: bool, license: str) -> Optional[str]:
-        if ifdo_enable and license == "":
-            return "License is empty"
-        return None
-
-    @staticmethod
     def _validate_distance_above_ground(ifdo_enable: bool, distance: str) -> Optional[str]:
         if ifdo_enable:
             if distance == "":
@@ -549,8 +572,4 @@ class UserInputModelValidator:
     def _validate_input_path_not_output_path(input_path: str, output_path: str) -> Optional[str]:
         if input_path == output_path:
             return "Input directory and output directory cannot be the same"
-        return None
-
-    @staticmethod
-    def _validate_export_kml(export_kml: bool) -> Optional[str]:
         return None
