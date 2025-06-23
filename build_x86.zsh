@@ -28,7 +28,7 @@ arch -x86_64 poetry run pyinstaller --clean --noconfirm main.spec
 
 # Create the zip file
 cd dist
-ditto -c -k --sequesterRsrc --keepParent "iBenthos Geotagging Tool.app" "iBenthos Geotagging Tool x86 $(cat ../$BUILD_DIR_NAME/build_id.txt).zip"
+ditto -c -k --sequesterRsrc --keepParent "iBenthos Geotagging Tool.app" "iBenthos Geotagging Tool x86 $(cat ../$BUILD_DIR_NAME/version.txt).zip"
 cd ..
 
 # Clean up build files
