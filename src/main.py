@@ -1,3 +1,13 @@
+"""
+main.py: Main entry point for the iBenthos Geotagging Tool application.
+This script initializes the application, sets up the main controller, and starts the Qt event loop.
+
+Copyright (c) 2023-2025
+Commonwealth Scientific and Industrial Research Organisation (CSIRO)
+ABN 41 687 119 230
+
+Author: Brendan Do <brendan.do@csiro.au>
+"""
 import copy
 import datetime
 import hashlib
@@ -80,6 +90,9 @@ def get_average_image_color(image_data: Image.Image) -> tuple[int, ...]:
     return tuple(map(int, average_color))
 
 class GeotagWorker(QObject):
+    """
+    Worker class that contains the geotagging logic intended to be run as a separate thread.
+    """
     progress = Signal(int, int)
     error_msgs = Signal(str)
     finished = Signal(str)
@@ -97,7 +110,7 @@ class GeotagWorker(QObject):
         self.exec_path = exec_path
         self.kml_export = kml_export
         self.base_tags = {}
-    
+
     def set_base_tags(self, base_tags: dict):
         """
         Set the base tags for the images. This is used to set common metadata for all images.
@@ -105,6 +118,9 @@ class GeotagWorker(QObject):
         self.base_tags = base_tags
 
     def add_to_ifdo(self, relative_fn: str, exif_data: dict, gps_tags: dict):
+        """
+        Add image properties to the IFDO model.
+        """
         image_datetime = datetime.datetime.strptime(f'{gps_tags["Exif:GPSDateStamp"]} ' + \
                                                     f'{gps_tags["Exif:GPSTimeStamp"]}',
                                                     '%Y:%m:%d %H:%M:%S')\
@@ -114,8 +130,8 @@ class GeotagWorker(QObject):
 
         hasher = hashlib.sha256()
 
-        with open(self.export_dir / relative_fn, 'rb') as f:
-            while chunk := f.read(1_048_576):  # 1MB chunks
+        with open(self.export_dir / relative_fn, 'rb') as image_file:
+            while chunk := image_file.read(1_048_576):  # 1MB chunks
                 hasher.update(chunk)
 
         image_hash_sha256 = hasher.hexdigest()
@@ -142,6 +158,9 @@ class GeotagWorker(QObject):
         )
 
     def run(self):
+        """
+        Runs the geotagging process.
+        """
         # Get images to be tagged
         image_list = _get_images(self.import_dir)
 
@@ -156,7 +175,7 @@ class GeotagWorker(QObject):
                 exif_data = et.get_metadata(str(image_fn))[0]
                 new_exif_tags = copy.copy(self.base_tags)
                 try:
-                    new_exif_tags |= self.tagger.generate_gps_tags(exif_data, 
+                    new_exif_tags |= self.tagger.generate_gps_tags(exif_data,
                                                                    tz_override=self.tz_override)
                 except IndexError as e:
                     logger.error(
@@ -189,7 +208,7 @@ class GeotagWorker(QObject):
                     try:
                         kml_gen.add_image_point(save_fn)
                     except KeyError as e:
-                        logger.error(f"Missing GPS data in image {image_fn}: {e}")
+                        logger.error("Missing GPS data in image %s: %s", image_fn, e)
                         self.error_msgs.emit(f"Missing GPS data in image {image_fn}: {e}")
                 self.progress.emit(idx, total_images)
         # Save the IFDO model to a file
@@ -205,6 +224,9 @@ class GeotagWorker(QObject):
         self.finished.emit("Finished geotagging images.")
 
 class MainController(QObject):
+    """
+    Main controller that handles the interaction between the view and the model.
+    """
     def __init__(self, app_view: views.MainWindow, model: models.UserInputModel,
                  config: models.ConfigModel, feedback: models.FeedbackModel,
                  exec_path: Optional[str] = None):
@@ -287,6 +309,10 @@ class MainController(QObject):
     # Slot to start the geotagging process
     @Slot()
     def geotag(self):
+        """
+        Slot intended to start the geotagging process.
+        This method validates the user input, and starts the geotagging worker thread.
+        """
         # Manually trigger field signals to update the model
         self._app_view.manuallyTriggerFieldSignals()
 
@@ -303,7 +329,7 @@ class MainController(QObject):
 
         # Create the PhotoTransectGPSTagger object
         # Use GPS photo and timestamp only if GPS photo is available
-        tz_override = self._config.gpsTimezoneOptions[self._model.cameraTimezoneIndex]
+        tz_override = self._config.gpsTimezoneOptions[self._model.cameraTimezoneIndex]\
                           .replace("UTC", "")
         if self._model.gpsPhotoAvailable:
             jpg_gps_timestamp = datetime.datetime.fromisoformat(
@@ -401,7 +427,7 @@ class MainController(QObject):
     def show_about(self):
         """Show the About dialog with version and build information."""
         self._app_view.showAboutDialog(
-            version=self._config.version, 
+            version=self._config.version,
             build_hash=self._config.buildHash
         )
 
