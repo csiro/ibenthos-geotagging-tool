@@ -14,6 +14,7 @@ $buildId | Out-File -Encoding UTF8 -NoNewline "$BUILD_DIR_NAME\build_id.txt"
 $versionLine = (Get-Content pyproject.toml) -match 'version\s*=\s*"(.*)"'
 "$versionLine" -match 'version\s*=\s*"(.*)"'
 $Matches[1] | Out-File  -Encoding UTF8 -NoNewline "$BUILD_DIR_NAME\version.txt"
+$versionStr = $Matches[1]
 
 # Download exiftool
 Invoke-WebRequest -Uri "https://exiftool.org/$EXIFTOOL_ARCHIVE_NAME.zip" -OutFile "$BUILD_DIR_NAME\$EXIFTOOL_ARCHIVE_NAME.zip"
@@ -27,7 +28,7 @@ poetry install
 poetry run pyinstaller --clean --noconfirm main.spec
 
 # Compile the installer
-ISCC.exe /O"dist" ".\windows_setup_builder.iss"
+ISCC.exe /O"dist" /F"ibenthosgeotaggingtool_setup_v$versionStr" /D"MyAppVersion=$versionStr" ".\windows_setup_builder.iss"
 
 # Clean up
 Remove-Item -Recurse -Force x86_build

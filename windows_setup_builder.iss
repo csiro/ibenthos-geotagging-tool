@@ -2,7 +2,6 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "iBenthos Geotagging Tool"
-#define MyAppVersion "0.1"
 #define MyAppPublisher "Commonwealth Scientific and Industrial Research Organisation"
 #define MyAppURL "https://ibenthos.ai/"
 #define MyAppExeName "iBenthos Geotagging Tool.exe"
