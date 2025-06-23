@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ibenthos-pt-ifdo-gui"
-version = "0.99.0"
+version = "0.99.1"
 description = ""
 authors = ["Brendan Do <brendan.do@csiro.au>"]
 readme = "README.md"
