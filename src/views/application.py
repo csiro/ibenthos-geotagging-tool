@@ -163,12 +163,16 @@ class MainWindow(QMainWindow):
         # Middle pane
         self._middle_pane = QVBoxLayout()
 
-        self._kml_export = QCheckBox("Export a KML file")
+        self._kml_export = QCheckBox("Export a KMZ preview file")
         self._kml_export.setChecked(False)
         self._kml_export.stateChanged.connect(
             lambda: self.kmlExportChanged.emit(self._kml_export.isChecked()))
-        self._kml_export.setToolTip("Selecting this will generate a KML file, allowing you to "
-                                    "preview your geotagged images.")
+        self._kml_export.setToolTip("Selecting this will generate a KMZ file, which contains the "
+                                    "locations of each photo and a circular thumbnail of each "
+                                    "photo. If this KMZ is distributed with the rest of the output "
+                                    "directory, it will also provide a preview of the images. "
+                                    "This file can be opened in software such as Google Earth and "
+                                    "GIS applications. ")
         self._middle_pane.addWidget(self._kml_export)
 
         self._attribution_export = QCheckBox("Add attribution metadata")
@@ -232,7 +236,7 @@ class MainWindow(QMainWindow):
         self._ifdo_export_checkbox.setChecked(False)
         self._ifdo_export_checkbox.stateChanged.connect(lambda:
                                 self.ifdoExportChanged.emit(self._ifdo_export_checkbox.isChecked()))
-        self._ifdo_export_checkbox.setToolTip("Create an iFDO (FAIR Digital Object for images)"
+        self._ifdo_export_checkbox.setToolTip("Create an iFDO (image FAIR Digital Object)"
                                               " metadata file containing detailed information about"
                                               " the image collection for marine research purposes.")
         self._middle_pane.addWidget(self._ifdo_export_checkbox)
