@@ -50,6 +50,37 @@ class MainWindow(QMainWindow):
         self.setGeometry(100, 100, 1200, 600)
         self._timezone_index_default = 0
 
+        self._generate_window_layout()
+
+        # UI Config defaults
+        # Initially disable GPS photo fields since checkbox is unchecked
+        self._gps_photo_config.setEnabled(False)
+        self._image_preview.setEnabled(False)
+        self._gps_datetime_config.setEnabled(False)
+        self._gps_timezone_selector.setEnabled(False)
+
+        # Initially disable attribution fields since checkbox is unchecked
+        self._attribution_group = [self._pi_name, self._pi_orcid,
+                                   self._collector_name, self._collector_orcid,
+                                   self._copyright_owner, self._license,
+                                   self._ifdo_export_checkbox]
+
+        for widget in self._attribution_group:
+            widget.setEnabled(False)
+
+        # Disable iFDO export fields initially
+        self._ifdo_group = [self._image_set_name, self._context,
+                            self._project_name, self._campaign_name,
+                            self._distance_ag, self._image_objective,
+                            self._image_abstract]
+
+        for widget in self._ifdo_group:
+            widget.setEnabled(False)
+
+    def _generate_window_layout(self):
+        """
+        Generate the main window layout with all components.
+        """
         # Create menubar
         self._create_menubar()
 
@@ -64,35 +95,49 @@ class MainWindow(QMainWindow):
         # Left pane
         self._left_pane = QVBoxLayout()
 
-        # 
         self._input_dir_config = ConfigDirectory(self, label_text="Input photo directory")
         self._input_dir_config.directoryChanged.connect(self.inputDirChanged)
+        self._input_dir_config.setToolTip("Select a directory with photos to geotag.")
         self._left_pane.addWidget(self._input_dir_config)
 
         self._gpx_file_config = ConfigFileSelector(self, label_text="GPX file",
                                                    name_filters=["GPX files (*.gpx)"])
         self._gpx_file_config.fileSelected.connect(self.gpxFileChanged)
+        self._gpx_file_config.setToolTip("Select a GPX file containing the GPS track data for "
+                                         "geotagging your photos.")
         self._left_pane.addWidget(self._gpx_file_config)
 
-        self._camera_timezone_selector = ConfigSelector(options=["Option 1", "Option 2", "Option 3"],
+        self._camera_timezone_selector = ConfigSelector(options=["Option 1", "Option 2",
+                                                                 "Option 3"],
                                                         label="Camera timezone")
         self._camera_timezone_selector.indexChanged.connect(self.cameraTimezoneIndexChanged)
         self._camera_timezone_selector.currentIndex = self._timezone_index_default
+        self._camera_timezone_selector.setToolTip("Select the timezone your camera was set to when"
+                                                  " taking the photos.")
         self._left_pane.addWidget(self._camera_timezone_selector)
 
         self._output_dir_config = ConfigDirectory(self, label_text="Output directory")
         self._output_dir_config.directoryChanged.connect(self.outputDirChanged)
+        self._output_dir_config.setToolTip("Choose where to save the geotagged photos.")
         self._left_pane.addWidget(self._output_dir_config)
 
         self._gps_photo_available_checkbox = QCheckBox("GPS Photo for sync available")
         self._gps_photo_available_checkbox.setChecked(False)
         self._gps_photo_available_checkbox.stateChanged.connect(
-            lambda: self.gpsPhotoAvailableChanged.emit(self._gps_photo_available_checkbox.isChecked()))
+            lambda: self.gpsPhotoAvailableChanged.emit(
+                self._gps_photo_available_checkbox.isChecked()))
         self._gps_photo_available_checkbox.stateChanged.connect(self.enableDisableGPSPhotoFields)
+        self._gps_photo_available_checkbox.setToolTip("Check this if you have taken a photo for the"
+                                                      " GPS unit with the date & time. This "
+                                                      "improves accuracy when camera and GPS clocks"
+                                                      " aren't perfectly synchronized.")
         self._left_pane.addWidget(self._gps_photo_available_checkbox)
 
         self._gps_photo_config = ConfigFileSelector(self, label_text="GPS Photo")
         self._gps_photo_config.fileSelected.connect(self.gpsPhotoChanged)
+        self._gps_photo_config.setToolTip("Select photo taken with the GPS unit date & time. This "
+                                          "photo will be used to synchronize the camera time with"
+                                          " GPS time.")
         self._left_pane.addWidget(self._gps_photo_config)
 
         self._image_preview = ImagePreview()
@@ -103,19 +148,15 @@ class MainWindow(QMainWindow):
         self._gps_datetime_config.label = "Date Time on GPS"
         self._gps_datetime_config.dateChanged.connect(self.gpsDateChanged)
         self._gps_datetime_config.timeChanged.connect(self.gpsTimeChanged)
+        self._gps_datetime_config.setToolTip("Enter the exact date and time on your GPS unit.")
         self._left_pane.addWidget(self._gps_datetime_config)
 
         self._gps_timezone_selector = ConfigSelector(options=["Option 1", "Option 2", "Option 3"])
         self._gps_timezone_selector.indexChanged.connect(self.gpsTimezoneIndexChanged)
         self._gps_timezone_selector.currentIndex = self._timezone_index_default
+        self._gps_timezone_selector.setToolTip("Select the timezone your GPS device was set to when"
+                                               " recording the reference photo location.")
         self._left_pane.addWidget(self._gps_timezone_selector)
-
-
-        # Initially disable GPS photo fields since checkbox is unchecked
-        self._gps_photo_config.setEnabled(False)
-        self._image_preview.setEnabled(False)
-        self._gps_datetime_config.setEnabled(False)
-        self._gps_timezone_selector.setEnabled(False)
 
         self._main_layout.addLayout(self._left_pane)
 
@@ -126,42 +167,56 @@ class MainWindow(QMainWindow):
         self._kml_export.setChecked(False)
         self._kml_export.stateChanged.connect(
             lambda: self.kmlExportChanged.emit(self._kml_export.isChecked()))
+        self._kml_export.setToolTip("Selecting this will generate a KML file, allowing you to "
+                                    "preview your geotagged images.")
         self._middle_pane.addWidget(self._kml_export)
 
         self._attribution_export = QCheckBox("Add attribution metadata")
         self._attribution_export.setChecked(False)
         self._attribution_export.stateChanged.connect(
             lambda: self.attributionExportChanged.emit(self._attribution_export.isChecked()))
+        self._attribution_export.setToolTip("Embed researcher and copyright information directly"
+                                            " into the photo metadata for proper attribution.")
         self._middle_pane.addWidget(self._attribution_export)
 
         self._pi_name = ConfigTextBox(self, width_ratio=0.5)
         self._pi_name.label = "Principal Investigator's name"
         self._pi_name.defaultValue = "i.e. Jane Smith"
         self._pi_name.valueChanged.connect(self.piNameChanged)
+        self._pi_name.setToolTip("Enter the name of the principal investigator responsible for "
+                                 "this research project.")
         self._middle_pane.addWidget(self._pi_name)
 
         self._pi_orcid = ConfigTextBox(self, width_ratio=0.5)
         self._pi_orcid.label = "PI's ORCID (optional)"
         self._pi_orcid.defaultValue = "0000-0000-0000-0000"
         self._pi_orcid.valueChanged.connect(self.piOrcidChanged)
+        self._pi_orcid.setToolTip("Enter the Principal Investigator's ORCID identifier (a unique"
+                                  " researcher ID). Format: 0000-0000-0000-0000")
         self._middle_pane.addWidget(self._pi_orcid)
 
         self._collector_name = ConfigTextBox(self, width_ratio=0.5)
         self._collector_name.label = "Collector's name"
         self._collector_name.defaultValue = "i.e. Jane Smith"
         self._collector_name.valueChanged.connect(self.collectorNameChanged)
+        self._collector_name.setToolTip("Enter the name of the person who collected/took these"
+                                        " photos.")
         self._middle_pane.addWidget(self._collector_name)
 
         self._collector_orcid = ConfigTextBox(self, width_ratio=0.5)
         self._collector_orcid.label = "Collector's ORCID (optional)"
         self._collector_orcid.defaultValue = "0000-0000-0000-0000"
         self._collector_orcid.valueChanged.connect(self.collectorOrcidChanged)
+        self._collector_orcid.setToolTip("Enter the image collector's ORCID identifier (a unique"
+                                         " researcher ID). Format: 0000-0000-0000-0000")
         self._middle_pane.addWidget(self._collector_orcid)
 
         self._copyright_owner = ConfigTextBox(self, width_ratio=0.5)
         self._copyright_owner.label = "Copyright owner"
         self._copyright_owner.defaultValue = "i.e. University of the Sea"
         self._copyright_owner.valueChanged.connect(self.copyrightOwnerChanged)
+        self._copyright_owner.setToolTip("Enter the organization or individual who owns the "
+                                         "copyright to these images.")
         self._middle_pane.addWidget(self._copyright_owner)
 
         self._license = ConfigTextBox(self, width_ratio=0.5)
@@ -169,70 +224,76 @@ class MainWindow(QMainWindow):
         self._license.defaultValue = "i.e. CC BY 4.0"
         self._license.value = "CC BY 4.0"
         self._license.valueChanged.connect(self.licenseChanged)
+        self._license.setToolTip("Specify the license under which these images are made available "
+                                 "(e.g., CC BY 4.0, All Rights Reserved).")
         self._middle_pane.addWidget(self._license)
 
         self._ifdo_export_checkbox = QCheckBox("Export an iFDO file")
         self._ifdo_export_checkbox.setChecked(False)
-        self._ifdo_export_checkbox.stateChanged.connect(lambda: self.ifdoExportChanged.emit(self._ifdo_export_checkbox.isChecked()))
+        self._ifdo_export_checkbox.stateChanged.connect(lambda:
+                                self.ifdoExportChanged.emit(self._ifdo_export_checkbox.isChecked()))
+        self._ifdo_export_checkbox.setToolTip("Create an iFDO (FAIR Digital Object for images)"
+                                              " metadata file containing detailed information about"
+                                              " the image collection for marine research purposes.")
         self._middle_pane.addWidget(self._ifdo_export_checkbox)
-
-        self._attribution_group = [self._pi_name, self._pi_orcid,
-                                   self._collector_name, self._collector_orcid,
-                                   self._copyright_owner, self._license,
-                                   self._ifdo_export_checkbox]
-
-        for widget in self._attribution_group:
-            widget.setEnabled(False)
 
         self._image_set_name = ConfigTextBox(self)
         self._image_set_name.label = "Image set name"
         self._image_set_name.defaultValue = "i.e. Site and date identifier"
         self._image_set_name.valueChanged.connect(self.imageSetNameChanged)
+        self._image_set_name.setToolTip("Enter a descriptive name for this collection of images,"
+                                        " typically including site location and date.")
         self._middle_pane.addWidget(self._image_set_name)
 
         self._context = ConfigTextBox(self)
         self._context.label = "Context"
         self._context.defaultValue = "i.e. why is this being collected?"
         self._context.valueChanged.connect(self.contextChanged)
+        self._context.setToolTip("Describe the context or purpose for collecting these images "
+                                 "(e.g., biodiversity survey, habitat assessment).")
         self._middle_pane.addWidget(self._context)
 
         self._project_name = ConfigTextBox(self)
         self._project_name.label = "Project name"
         self._project_name.defaultValue = "i.e. iBenthos"
         self._project_name.valueChanged.connect(self.projectNameChanged)
+        self._project_name.setToolTip("Enter the name of the research project these images belong"
+                                      " to.")
         self._middle_pane.addWidget(self._project_name)
 
         self._campaign_name = ConfigTextBox(self)
         self._campaign_name.label = "Campaign name"
         self._campaign_name.defaultValue = "i.e. Voyage or trip name"
         self._campaign_name.valueChanged.connect(self.campaignNameChanged)
+        self._campaign_name.setToolTip("Enter the name of the specific campaign, voyage, or field"
+                                       " trip when these images were collected.")
         self._middle_pane.addWidget(self._campaign_name)
 
         self._distance_ag = ConfigTextBox(self, width_ratio=0.7)
         self._distance_ag.label = "Distance above ground (m)"
         self._distance_ag.defaultValue = "i.e. 0.8"
         self._distance_ag.valueChanged.connect(self.distanceAGChanged)
+        self._distance_ag.setToolTip("Enter the typical distance in meters between the camera and"
+                                     " the seafloor/ground when these images were taken.")
         self._middle_pane.addWidget(self._distance_ag)
 
         self._image_objective = ConfigTextBox(self)
         self._image_objective.label = "Image objective"
         self._image_objective.defaultValue = "What is the survey goal?"
         self._image_objective.valueChanged.connect(self.imageObjectiveChanged)
+        self._image_objective.setToolTip("Describe the specific objective or goal of this image"
+                                         " collection (e.g., species identification, habitat "
+                                         "mapping).")
         self._middle_pane.addWidget(self._image_objective)
 
         self._image_abstract = ConfigMultilineTextBox(self)
         self._image_abstract.label = "Image abstract"
         self._image_abstract.defaultValue = "Description of the image set"
         self._image_abstract.valueChanged.connect(self.imageAbstractChanged)
+        self._image_abstract.setToolTip("Provide a detailed description of this image collection, "
+                                        "including methodology, location details, and any "
+                                        "relevant scientific context.")
         self._middle_pane.addWidget(self._image_abstract)
-
-        self._ifdo_group = [self._image_set_name, self._context,
-                            self._project_name, self._campaign_name,
-                            self._distance_ag, self._image_objective,
-                            self._image_abstract]
-
-        for widget in self._ifdo_group:
-            widget.setEnabled(False)
 
         self._main_layout.addLayout(self._middle_pane)
 

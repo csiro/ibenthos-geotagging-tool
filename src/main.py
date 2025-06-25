@@ -306,7 +306,6 @@ class MainController(QObject):
         self._feedback.feedbackTextChanged.connect(self._app_view.setFeedbackText)
         self._feedback.progressChanged.connect(self._app_view.setProgress)
 
-    # Slot to start the geotagging process
     @Slot()
     def geotag(self):
         """
