@@ -9,3 +9,4 @@ launch.json
 Image-ExifTool-*/
 Output/
 exiftool-*/
+.venv/
