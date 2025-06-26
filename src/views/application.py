@@ -177,57 +177,59 @@ class MainWindow(QMainWindow):
         self._attribution_export.setChecked(False)
         self._attribution_export.stateChanged.connect(
             lambda: self.attributionExportChanged.emit(self._attribution_export.isChecked()))
-        self._attribution_export.setToolTip("Embed researcher and copyright information directly"
-                                            " into the photo metadata for proper attribution.")
+        self._attribution_export.setToolTip("Check this to embed researcher and copyright "
+                                            "information directly into the photo metadata.")
         self._middle_pane.addWidget(self._attribution_export)
 
-        self._pi_name = ConfigTextBox(self, width_ratio=0.5)
-        self._pi_name.label = "Principal Investigator's name"
-        self._pi_name.defaultValue = "i.e. Jane Smith"
-        self._pi_name.valueChanged.connect(self.piNameChanged)
-        self._pi_name.setToolTip("Enter the name of the principal investigator responsible for "
-                                 "this research project.")
+        self._pi_name = ConfigTextBox(self, width_ratio=0.5,
+                                      label="Principal Investigator's name",
+                                      default_value="Jane Smith",
+                                      value_changed_signal_connect=self.piNameChanged,
+                                      tooltip="Enter the name of the principal investigator "
+                                              "responsible for this research project.")
         self._middle_pane.addWidget(self._pi_name)
 
-        self._pi_orcid = ConfigTextBox(self, width_ratio=0.5)
-        self._pi_orcid.label = "PI's ORCID (optional)"
-        self._pi_orcid.defaultValue = "0000-0000-0000-0000"
-        self._pi_orcid.valueChanged.connect(self.piOrcidChanged)
-        self._pi_orcid.setToolTip("Enter the Principal Investigator's ORCID identifier (a unique"
-                                  " researcher ID). Format: 0000-0000-0000-0000")
+        self._pi_orcid = ConfigTextBox(self, width_ratio=0.5,
+                                       label="PI's ORCID (optional)",
+                                       default_value="0000-0000-0000-0000",
+                                       value_changed_signal_connect=self.piOrcidChanged,
+                                       tooltip="Enter the Principal Investigator's ORCID. "
+                                               "Format: 0000-0000-0000-0000")
         self._middle_pane.addWidget(self._pi_orcid)
 
-        self._collector_name = ConfigTextBox(self, width_ratio=0.5)
-        self._collector_name.label = "Collector's name"
-        self._collector_name.defaultValue = "i.e. Jane Smith"
-        self._collector_name.valueChanged.connect(self.collectorNameChanged)
-        self._collector_name.setToolTip("Enter the name of the person who collected/took these"
-                                        " photos.")
+        self._collector_name = ConfigTextBox(self, width_ratio=0.5,
+                                             label="Collector's name",
+                                             default_value="Jane Smith",
+                                             value_changed_signal_connect=self.collectorNameChanged,
+                                             tooltip="Enter the name of the person who "
+                                                     "collected/took these photos.")
         self._middle_pane.addWidget(self._collector_name)
 
-        self._collector_orcid = ConfigTextBox(self, width_ratio=0.5)
-        self._collector_orcid.label = "Collector's ORCID (optional)"
-        self._collector_orcid.defaultValue = "0000-0000-0000-0000"
-        self._collector_orcid.valueChanged.connect(self.collectorOrcidChanged)
-        self._collector_orcid.setToolTip("Enter the image collector's ORCID identifier (a unique"
-                                         " researcher ID). Format: 0000-0000-0000-0000")
+        self._collector_orcid = ConfigTextBox(self, width_ratio=0.5,
+                                              label="Collector's ORCID (optional)",
+                                              default_value="0000-0000-0000-0000",
+                                              value_changed_signal_connect=\
+                                                self.collectorOrcidChanged,
+                                              tooltip="Enter the image collector's ORCID. "
+                                                      "Format: 0000-0000-0000-0000")
         self._middle_pane.addWidget(self._collector_orcid)
 
-        self._copyright_owner = ConfigTextBox(self, width_ratio=0.5)
-        self._copyright_owner.label = "Copyright owner"
-        self._copyright_owner.defaultValue = "i.e. University of the Sea"
-        self._copyright_owner.valueChanged.connect(self.copyrightOwnerChanged)
-        self._copyright_owner.setToolTip("Enter the organization or individual who owns the "
-                                         "copyright to these images.")
+        self._copyright_owner = ConfigTextBox(self, width_ratio=0.5,
+                                              label="Copyright statement",
+                                              default_value=\
+                                                "(c) 2025 University of the Sea",
+                                              value_changed_signal_connect=\
+                                                self.copyrightOwnerChanged,
+                                              tooltip="Enter your copyright statement.")
         self._middle_pane.addWidget(self._copyright_owner)
 
-        self._license = ConfigTextBox(self, width_ratio=0.5)
-        self._license.label = "License"
-        self._license.defaultValue = "i.e. CC BY 4.0"
-        self._license.value = "CC BY 4.0"
-        self._license.valueChanged.connect(self.licenseChanged)
-        self._license.setToolTip("Specify the license under which these images are made available "
-                                 "(e.g., CC BY 4.0, All Rights Reserved).")
+
+        self._license = ConfigTextBox(self, width_ratio=0.5, label="License",
+                                      default_value="CC BY 4.0",
+                                      value_changed_signal_connect=self.licenseChanged,
+                                      tooltip="Specify the license under which these images are "
+                                              "made available (e.g., CC BY 4.0, All Rights "
+                                              "Reserved).")
         self._middle_pane.addWidget(self._license)
 
         self._ifdo_export_checkbox = QCheckBox("Export an iFDO file")
@@ -239,28 +241,24 @@ class MainWindow(QMainWindow):
                                               " the image collection for marine research purposes.")
         self._middle_pane.addWidget(self._ifdo_export_checkbox)
 
-        self._image_set_name = ConfigTextBox(self)
-        self._image_set_name.label = "Image set name"
-        self._image_set_name.defaultValue = "i.e. Site and date identifier"
-        self._image_set_name.valueChanged.connect(self.imageSetNameChanged)
-        self._image_set_name.setToolTip("Enter a descriptive name for this collection of images,"
-                                        " typically including site location and date.")
+        self._image_set_name = ConfigTextBox(self, label="Image set name",
+                                             default_value="Seagrass Survey: Site A, 2025-06",
+                                             value_changed_signal_connect=self.imageSetNameChanged,
+                                             tooltip="Enter a name for the image set.")
         self._middle_pane.addWidget(self._image_set_name)
 
-        self._context = ConfigTextBox(self)
-        self._context.label = "Context"
-        self._context.defaultValue = "i.e. why is this being collected?"
-        self._context.valueChanged.connect(self.contextChanged)
-        self._context.setToolTip("Describe the context or purpose for collecting these images "
-                                 "(e.g., biodiversity survey, habitat assessment).")
+        self._context = ConfigTextBox(self, label="Context",
+                                      default_value="Higher-level \"umbrella\" project",
+                                      value_changed_signal_connect=self.contextChanged,
+                                      tooltip="Name of the higher-level project or context this "
+                                              "data is being collected for.")
         self._middle_pane.addWidget(self._context)
 
-        self._project_name = ConfigTextBox(self)
-        self._project_name.label = "Project name"
-        self._project_name.defaultValue = "i.e. iBenthos"
-        self._project_name.valueChanged.connect(self.projectNameChanged)
-        self._project_name.setToolTip("Enter the name of the research project these images belong"
-                                      " to.")
+        self._project_name = ConfigTextBox(self, label="Project name",
+                                           default_value="Seagrass expedition June 25",
+                                           value_changed_signal_connect=self.projectNameChanged,
+                                           tooltip="Enter the lower-level project, expedition, "
+                                                   "cruise or experiment.")
         self._middle_pane.addWidget(self._project_name)
 
         self._event_name = ConfigTextBox(self, label="Event name",
@@ -270,21 +268,21 @@ class MainWindow(QMainWindow):
                                                  "site name etc.")
         self._middle_pane.addWidget(self._event_name)
 
-        self._distance_ag = ConfigTextBox(self, width_ratio=0.7)
-        self._distance_ag.label = "Distance above ground (m)"
-        self._distance_ag.defaultValue = "i.e. 0.8"
-        self._distance_ag.valueChanged.connect(self.distanceAGChanged)
-        self._distance_ag.setToolTip("Enter the typical distance in meters between the camera and"
-                                     " the seafloor/ground when these images were taken.")
+        self._distance_ag = ConfigTextBox(self, width_ratio=0.7,
+                                          label="Distance above ground (m)",
+                                          default_value=" 0.8",
+                                          value_changed_signal_connect=self.distanceAGChanged,
+                                          tooltip="Enter the typical distance in meters between "
+                                                  "the camera and the seafloor/ground when these "
+                                                  "images were taken.")
         self._middle_pane.addWidget(self._distance_ag)
 
         self._image_abstract = ConfigMultilineTextBox(self)
-        self._image_abstract.label = "Image abstract"
+        self._image_abstract.label = "Abstract"
         self._image_abstract.defaultValue = "Description of the image set"
         self._image_abstract.valueChanged.connect(self.imageAbstractChanged)
-        self._image_abstract.setToolTip("Provide a detailed description of this image collection, "
-                                        "including methodology, location details, and any "
-                                        "relevant scientific context.")
+        self._image_abstract.setToolTip("Provide a description on what, when, where, why"
+                                        " and how the data was collected.")
         self._middle_pane.addWidget(self._image_abstract)
 
         self._main_layout.addLayout(self._middle_pane)
