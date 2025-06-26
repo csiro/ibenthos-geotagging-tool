@@ -1,3 +1,11 @@
+## 0.99.2 (2025-06-27)
+
+ - KML now displays points as circular thumbnails
+ - Tooltips added: users can now hover over fields to get hints
+ - About Window added
+ - Reduced scope of iFDO fields to make it more generic
+ - Added usage documentation
+
 ## 0.99.1 (2025-06-23)
 
  - Added ability to generate KML file for previewing in Google Earth
