@@ -1,4 +1,5 @@
 import os
+from string import Template
 
 from PySide6.QtCore import QRegularExpression, QSize, Qt, Signal, Slot
 from PySide6.QtGui import QPixmap, QRegularExpressionValidator, QTextOption
@@ -449,13 +450,70 @@ class ControlRow(QWidget):
 
         self.setLayout(layout)
 
+OPEN_SOURCE_COMPONENTS = {
+    "Python": ("https://www.python.org/",
+        "https://docs.python.org/3/license.html#python-software-foundation-license-version-2"),
+    "PySide6": ("https://wiki.qt.io/Qt_for_Python",
+                "https://www.gnu.org/licenses/lgpl-3.0.en.html#license-text"),
+    "Poetry": ("https://python-poetry.org/",
+        "https://github.com/python-poetry/poetry-core/blob/main/LICENSE"),
+    "ExifTool": ("https://exiftool.org/", "https://dev.perl.org/licenses/artistic.html"),
+    "PyInstaller": ("https://pyinstaller.org/en/stable/",
+        "https://pyinstaller.org/en/stable/license.html"),
+    "Inno Setup": ("https://jrsoftware.org/isinfo.php",
+                   "https://jrsoftware.org/files/is/license.txt"),
+    "gpxpy": ("https://github.com/tkrajina/gpxpy/tree/dev",
+              "https://github.com/tkrajina/gpxpy/blob/dev/LICENSE.txt"),
+    "pandas": ("https://pandas.pydata.org/",
+               "https://pandas.pydata.org/docs/getting_started/overview.html#license"),
+    "pytest": ("https://docs.pytest.org/en/stable/",
+               "https://docs.pytest.org/en/stable/license.html"),
+    "PyExifTool": ("https://github.com/sylikc/pyexiftool",
+                   "https://github.com/sylikc/pyexiftool/blob/master/LICENSE"),
+    "Pillow": ("https://python-pillow.github.io/",
+               "https://github.com/python-pillow/Pillow/blob/main/LICENSE"),
+    "simplekml": ("https://simplekml.readthedocs.io/en/latest/",
+                  "https://www.gnu.org/licenses/lgpl-3.0.en.html"),
+    "PYAML": ("https://pyyaml.org/",
+              "https://github.com/yaml/pyyaml/blob/main/LICENSE"),
+    "Altgraph": ("https://altgraph.readthedocs.io/en/latest/",
+                 "https://github.com/ronaldoussoren/altgraph/blob/master/LICENSE"),
+    "iniconfig": ("https://github.com/pytest-dev/iniconfig",
+                  "https://github.com/pytest-dev/iniconfig/blob/main/LICENSE"),
+    "macholib": ("https://github.com/ronaldoussoren/macholib",
+                 "https://github.com/ronaldoussoren/macholib/blob/master/LICENSE"),
+    "numpy": ("https://numpy.org/", "https://github.com/numpy/numpy/blob/main/LICENSE.txt"),
+    "packaging": ("https://packaging.pypa.io/en/stable/",
+                  "https://github.com/pypa/packaging/blob/main/LICENSE"),
+    "pluggy": ("https://pluggy.readthedocs.io/en/latest/",
+               "https://github.com/pytest-dev/pluggy/blob/main/LICENSE"),
+    "pygments": ("https://pygments.org/",
+                 "https://github.com/pygments/pygments/blob/master/LICENSE"),
+    "pyinstaller-hooks-contrib": ("https://github.com/pyinstaller/pyinstaller-hooks-contrib",
+                    "https://github.com/pyinstaller/pyinstaller-hooks-contrib/blob/master/LICENSE"),
+    "PySide6_Addons": ("https://wiki.qt.io/Qt_for_Python",
+                       "https://www.gnu.org/licenses/lgpl-3.0.en.html#license-text"),
+    "PySide6_Essentials": ("https://wiki.qt.io/Qt_for_Python",
+                           "https://www.gnu.org/licenses/lgpl-3.0.en.html#license-text"),
+    "python-dateutil": ("https://dateutil.readthedocs.io/en/stable/",
+                        "https://github.com/dateutil/dateutil/blob/master/LICENSE"),
+    "pytz": ("https://pythonhosted.org/pytz/",
+             "https://github.com/stub42/pytz/blob/master/LICENSE.txt"),
+    "shiboken6": ("https://wiki.qt.io/Qt_for_Python",
+                  "https://www.gnu.org/licenses/lgpl-3.0.en.html#license-text"),
+    "six": ("https://github.com/benjaminp/six",
+            "https://github.com/benjaminp/six/blob/main/LICENSE"),
+    "tzdata": ("https://github.com/python/tzdata",
+               "https://github.com/python/tzdata/blob/master/LICENSE")
+}
+
 class AboutDialog(QDialog):
     """About dialog for the application."""
 
     def __init__(self, parent=None, version="Unknown", build_hash="Unknown"):
         super().__init__(parent)
         self.setWindowTitle("About iBenthos Geotagging Tool")
-        self.setFixedSize(400, 300)
+        self.setFixedSize(400, 500)
 
         layout = QVBoxLayout(self)
 
@@ -475,10 +533,10 @@ class AboutDialog(QDialog):
 
         # Description
         description = QLabel(
-            "A PySide6 desktop application that helps researchers geotag underwater photos "
-            "using GPS data from transect files. The application allows users to synchronize "
-            "underwater images with GPS tracks and optionally export metadata in iFDO format "
-            "for marine research."
+            "The iBenthos Geotagging Tool is a desktop application for geotagging images. "
+            "It allows users to set the GPS coordinates of their images using a GPX file, correct "
+            "in case of camera clock drift, and export in formats ready to upload to iBenthos"
+            " Classify."
         )
         description.setWordWrap(True)
         description.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -486,9 +544,39 @@ class AboutDialog(QDialog):
         layout.addWidget(description)
 
         # Copyright and license
-        copyright_label = QLabel("© 2025 CSIRO")
+        copyright_label = QLabel("© 2025 CSIRO<br>Software is licensed under "
+                                 "<a href=\"https://research.csiro.au/dap/licences/gnu-lesser-general-public-licence-v3-lgpl-3/\">LGPL-3</a>")
         copyright_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        copyright_label.setOpenExternalLinks(True)
+        copyright_label.setTextFormat(Qt.TextFormat.RichText)
+        copyright_label.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse |
+                                                Qt.TextInteractionFlag.TextBrowserInteraction)
         layout.addWidget(copyright_label)
+
+        open_source_template = Template("<a href=\"$url\">$name</a> "
+                                        "(<a href=\"$license_url\">License</a>)")
+        open_source_text = "<br>".join([open_source_template.substitute(
+            name=k, url=v[0], license_url=v[1]) for k, v in OPEN_SOURCE_COMPONENTS.items()])
+
+        # Open source components
+        open_source_label = QLabel(f"This application uses these open source components:<br>{open_source_text}")
+        open_source_label.setWordWrap(True)
+        open_source_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        open_source_label.setStyleSheet("margin: 5px;")
+        open_source_label.setOpenExternalLinks(True)
+        open_source_label.setTextFormat(Qt.TextFormat.RichText)
+        open_source_label.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse |
+                                                  Qt.TextInteractionFlag.TextBrowserInteraction)
+
+        scroll_area = QScrollArea(self)
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setWidget(open_source_label)
+        # scroll_area.setMinimumHeight(75)
+        # scroll_area.setMaximumHeight(150)
+        layout.addWidget(scroll_area)
+
 
         # OK button
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
