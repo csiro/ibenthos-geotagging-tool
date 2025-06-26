@@ -82,7 +82,7 @@ class ConfigMultilineTextBox(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setMinimumHeight(100)
+        self.setMinimumHeight(200)
         self.setMinimumWidth(300)
 
         layout = QVBoxLayout(self)
@@ -92,6 +92,7 @@ class ConfigMultilineTextBox(QWidget):
         # Label (configName)
         self.configName = QLabel("Label", self)
         self.configName.setMinimumHeight(25)
+        self.configName.setMaximumHeight(50)
         layout.addWidget(self.configName)
 
         # Text Area inside Scroll Area (configValue)
@@ -99,7 +100,7 @@ class ConfigMultilineTextBox(QWidget):
         self.configValue.setWordWrapMode(QTextOption.WrapMode.WordWrap)
         self.configValue.setPlaceholderText("Default")
         self.configValue.setMinimumHeight(75)
-        self.configValue.setMaximumHeight(75)
+        self.configValue.setMaximumHeight(150)
         self.configValue.textChanged.connect(lambda: self.valueChanged.emit(self.value))
 
         scroll_area = QScrollArea(self)
@@ -108,7 +109,7 @@ class ConfigMultilineTextBox(QWidget):
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         scroll_area.setWidget(self.configValue)
         scroll_area.setMinimumHeight(75)
-        scroll_area.setMaximumHeight(75)
+        scroll_area.setMaximumHeight(150)
 
         layout.addWidget(scroll_area)
 
@@ -142,7 +143,8 @@ class ConfigMultilineTextBox(QWidget):
 class ConfigTextBox(QWidget):
     valueChanged = Signal(str)
 
-    def __init__(self, parent=None, width_ratio=0.3):
+    def __init__(self, parent=None, width_ratio=0.3, label="Label", default_value="Default",
+                 value_changed_signal_connect=None, tooltip=None):
         super().__init__(parent)
         self.width_ratio = width_ratio
         self.setMinimumWidth(300)
@@ -164,6 +166,15 @@ class ConfigTextBox(QWidget):
         layout.addWidget(self.configValue, int((1 - self.width_ratio) * 100))
 
         self.setLayout(layout)
+
+        # Set initial values
+        self.label = label
+        self.defaultValue = default_value
+        if value_changed_signal_connect:
+            self.valueChanged.connect(value_changed_signal_connect)
+
+        if tooltip:
+            self.setToolTip(tooltip)
 
     @property
     def label(self):

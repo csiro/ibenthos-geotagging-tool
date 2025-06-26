@@ -21,7 +21,7 @@ class UserInputModel(QObject):
     imageSetNameChanged = Signal(str)
     imageContextChanged = Signal(str)
     projectNameChanged = Signal(str)
-    campaignNameChanged = Signal(str)
+    eventNameChanged = Signal(str)
     piNameChanged = Signal(str)
     piORCIDChanged = Signal(str)
     collectorNameChanged = Signal(str)
@@ -29,7 +29,6 @@ class UserInputModel(QObject):
     organisationChanged = Signal(str)
     licenseChanged = Signal(str)
     distanceAboveGroundChanged = Signal(str)
-    imageObjectiveChanged = Signal(str)
     imageAbstractChanged = Signal(str)
     exportKMLChanged = Signal(bool)
     attributionExportChanged = Signal(bool)
@@ -49,7 +48,7 @@ class UserInputModel(QObject):
         self._image_set_name = ""
         self._image_context = ""
         self._project_name = ""
-        self._campaign_name = ""
+        self._event_name = ""
         self._pi_name = ""
         self._pi_orcid = ""
         self._collector_name = ""
@@ -57,7 +56,6 @@ class UserInputModel(QObject):
         self._organisation = ""
         self._license = "CC BY 4.0"
         self._distance_above_ground = ""
-        self._image_objective = ""
         self._image_abstract = ""
         self._kml_enable = False
         self._attribution_export = False
@@ -192,15 +190,15 @@ class UserInputModel(QObject):
             self._project_name = name
             self.projectNameChanged.emit(name)
 
-    @Property(str, notify=campaignNameChanged)
-    def campaignName(self):
-        return self._campaign_name
+    @Property(str, notify=eventNameChanged)
+    def eventName(self):
+        return self._event_name
 
-    @campaignName.setter
-    def campaignName(self, name):
-        if self._campaign_name != name:
-            self._campaign_name = name
-            self.campaignNameChanged.emit(name)
+    @eventName.setter
+    def eventName(self, name):
+        if self._event_name != name:
+            self._event_name = name
+            self.eventNameChanged.emit(name)
 
     @Property(str, notify=piNameChanged)
     def piName(self):
@@ -272,16 +270,6 @@ class UserInputModel(QObject):
             self._distance_above_ground = distance
             self.distanceAboveGroundChanged.emit(distance)
 
-    @Property(str, notify=imageObjectiveChanged)
-    def imageObjective(self):
-        return self._image_objective
-
-    @imageObjective.setter
-    def imageObjective(self, image_objective):
-        if self._image_objective != image_objective:
-            self._image_objective = image_objective
-            self.imageObjectiveChanged.emit(image_objective)
-
     @Property(str, notify=imageAbstractChanged)
     def imageAbstract(self):
         return self._image_abstract
@@ -327,7 +315,7 @@ class UserInputModel(QObject):
         self.imageSetName = ""
         self.imageContext = ""
         self.projectName = ""
-        self.campaignName = ""
+        self.eventName = ""
         self.piName = ""
         self.piORCID = ""
         self.collectorName = ""
@@ -335,7 +323,6 @@ class UserInputModel(QObject):
         self.organisation = ""
         self.license = "CC BY 4.0"
         self.distanceAboveGround = ""
-        self.imageObjective = ""
         self.imageAbstract = ""
         self.exportKML = False
         self.attributionExport = False
@@ -372,9 +359,8 @@ class UserInputModelValidator:
             self._validate_image_set_name : [model.ifdoEnable, model.imageSetName],
             self._validate_image_context : [model.ifdoEnable, model.imageContext],
             self._validate_project_name : [model.ifdoEnable, model.projectName],
-            self._validate_campaign_name : [model.ifdoEnable, model.campaignName],
+            self._validate_event_name : [model.ifdoEnable, model.eventName],
             self._validate_distance_above_ground : [model.ifdoEnable, model.distanceAboveGround],
-            self._validate_image_objective : [model.ifdoEnable, model.imageObjective],
             self._validate_image_abstract : [model.ifdoEnable, model.imageAbstract],
             self._validate_input_path_not_output_path: [model.importDirectory,model.exportDirectory],
         }
@@ -544,9 +530,9 @@ class UserInputModelValidator:
         return None
 
     @staticmethod
-    def _validate_campaign_name(ifdo_enable: bool, campaign_name: str) -> Optional[str]:
-        if ifdo_enable and campaign_name == "":
-            return "Campaign name is empty"
+    def _validate_event_name(ifdo_enable: bool, event_name: str) -> Optional[str]:
+        if ifdo_enable and event_name == "":
+            return "Event name is empty"
         return None
 
     @staticmethod
@@ -562,10 +548,6 @@ class UserInputModelValidator:
 
     @staticmethod
     def _validate_image_abstract(ifdo_enable: bool, image_abstract: str) -> Optional[str]:
-        return None
-
-    @staticmethod
-    def _validate_image_objective(ifdo_enable: bool, image_objective: str) -> Optional[str]:
         return None
 
     @staticmethod

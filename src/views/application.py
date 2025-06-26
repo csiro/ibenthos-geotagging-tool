@@ -28,7 +28,7 @@ class MainWindow(QMainWindow):
     imageSetNameChanged = Signal(str)
     contextChanged = Signal(str)
     projectNameChanged = Signal(str)
-    campaignNameChanged = Signal(str)
+    eventNameChanged = Signal(str)
     piNameChanged = Signal(str)
     piOrcidChanged = Signal(str)
     collectorNameChanged = Signal(str)
@@ -36,7 +36,6 @@ class MainWindow(QMainWindow):
     copyrightOwnerChanged = Signal(str)
     licenseChanged = Signal(str)
     distanceAGChanged = Signal(str)
-    imageObjectiveChanged = Signal(str)
     imageAbstractChanged = Signal(str)
     clearFormTriggered = Signal()
     startProcessingTriggered = Signal()
@@ -47,7 +46,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("iBenthos Geotagging Tool")
-        self.setGeometry(100, 100, 1200, 600)
+        self.setGeometry(100, 100, 1300, 600)
         self._timezone_index_default = 0
 
         self._generate_window_layout()
@@ -70,9 +69,8 @@ class MainWindow(QMainWindow):
 
         # Disable iFDO export fields initially
         self._ifdo_group = [self._image_set_name, self._context,
-                            self._project_name, self._campaign_name,
-                            self._distance_ag, self._image_objective,
-                            self._image_abstract]
+                            self._project_name, self._event_name,
+                            self._distance_ag, self._image_abstract]
 
         for widget in self._ifdo_group:
             widget.setEnabled(False)
@@ -265,13 +263,12 @@ class MainWindow(QMainWindow):
                                       " to.")
         self._middle_pane.addWidget(self._project_name)
 
-        self._campaign_name = ConfigTextBox(self)
-        self._campaign_name.label = "Campaign name"
-        self._campaign_name.defaultValue = "i.e. Voyage or trip name"
-        self._campaign_name.valueChanged.connect(self.campaignNameChanged)
-        self._campaign_name.setToolTip("Enter the name of the specific campaign, voyage, or field"
-                                       " trip when these images were collected.")
-        self._middle_pane.addWidget(self._campaign_name)
+        self._event_name = ConfigTextBox(self, label="Event name",
+                                         default_value="Site A, 2025-06",
+                                         value_changed_signal_connect=self.eventNameChanged,
+                                         tooltip="Specify the event for the project, such as the "
+                                                 "site name etc.")
+        self._middle_pane.addWidget(self._event_name)
 
         self._distance_ag = ConfigTextBox(self, width_ratio=0.7)
         self._distance_ag.label = "Distance above ground (m)"
@@ -280,15 +277,6 @@ class MainWindow(QMainWindow):
         self._distance_ag.setToolTip("Enter the typical distance in meters between the camera and"
                                      " the seafloor/ground when these images were taken.")
         self._middle_pane.addWidget(self._distance_ag)
-
-        self._image_objective = ConfigTextBox(self)
-        self._image_objective.label = "Image objective"
-        self._image_objective.defaultValue = "What is the survey goal?"
-        self._image_objective.valueChanged.connect(self.imageObjectiveChanged)
-        self._image_objective.setToolTip("Describe the specific objective or goal of this image"
-                                         " collection (e.g., species identification, habitat "
-                                         "mapping).")
-        self._middle_pane.addWidget(self._image_objective)
 
         self._image_abstract = ConfigMultilineTextBox(self)
         self._image_abstract.label = "Image abstract"
@@ -326,16 +314,16 @@ class MainWindow(QMainWindow):
     def _create_menubar(self):
         """Create the application menubar with Help menu."""
         menubar = self.menuBar()
-        
+
         # Create Help menu
         help_menu = menubar.addMenu("&Help")
-        
+
         # About action
         about_action = QAction("&About", self)
         about_action.setStatusTip("Show information about the application")
         about_action.triggered.connect(self.aboutTriggered.emit)
         help_menu.addAction(about_action)
-        
+
         # Documentation action
         documentation_action = QAction("&Documentation", self)
         documentation_action.setStatusTip("Open application documentation")
@@ -412,7 +400,7 @@ class MainWindow(QMainWindow):
         self._image_set_name.value = ""
         self._context.value = ""
         self._project_name.value = ""
-        self._campaign_name.value = ""
+        self._event_name.value = ""
         self._pi_name.value = ""
         self._pi_orcid.value = ""
         self._collector_name.value = ""
@@ -420,24 +408,23 @@ class MainWindow(QMainWindow):
         self._copyright_owner.value = ""
         self._license.value = "CC BY 4.0"
         self._distance_ag.value = ""
-        self._image_objective.value = ""
         self._image_abstract.value = ""
         self._attribution_export.setChecked(False)
         self._kml_export.setChecked(False)
-    
+
     def setTimezoneIndexDefault(self, index: int, reset: bool = False):
         self._timezone_index_default = index
         if reset:
             self._gps_timezone_selector.currentIndex = index
             self._camera_timezone_selector.currentIndex = index
-    
+
     def manuallyTriggerFieldSignals(self):
         self._gps_datetime_config.dateChanged.emit(self._gps_datetime_config.date)
         self._gps_datetime_config.timeChanged.emit(self._gps_datetime_config.time)
         self._image_set_name.valueChanged.emit(self._image_set_name.value)
         self._context.valueChanged.emit(self._context.value)
         self._project_name.valueChanged.emit(self._project_name.value)
-        self._campaign_name.valueChanged.emit(self._campaign_name.value)
+        self._event_name.valueChanged.emit(self._event_name.value)
         self._pi_name.valueChanged.emit(self._pi_name.value)
         self._pi_orcid.valueChanged.emit(self._pi_orcid.value)
         self._collector_name.valueChanged.emit(self._collector_name.value)
@@ -445,7 +432,6 @@ class MainWindow(QMainWindow):
         self._copyright_owner.valueChanged.emit(self._copyright_owner.value)
         self._license.valueChanged.emit(self._license.value)
         self._distance_ag.valueChanged.emit(self._distance_ag.value)
-        self._image_objective.valueChanged.emit(self._image_objective.value)
         self._image_abstract.valueChanged.emit(self._image_abstract.value)
 
     def showAboutDialog(self, version="Unknown", build_hash="Unknown"):

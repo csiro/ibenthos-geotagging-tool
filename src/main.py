@@ -40,55 +40,6 @@ def _get_images(directory: Path):
     file_list = list(directory.rglob("*"))
     return [file for file in file_list if file.suffix.lower() in extensions]
 
-def get_shannon_entropy(image_data: Image.Image) -> float:
-    """
-    Calculate the Shannon entropy of an image file.
-
-    Args:
-        image_data: The loaded image data.
-
-    Returns:
-        The Shannon entropy of the image as a float value.
-    """
-    # Convert to grayscale
-    grayscale_image = image_data.convert("L")
-
-    # Calculate the histogram
-    histogram = np.array(grayscale_image.histogram(), dtype=np.float32)
-
-    # Normalize the histogram to get probabilities
-    probabilities = histogram / histogram.sum()
-
-    # Filter out zero probabilities
-    probabilities = probabilities[probabilities > 0]
-
-    # Calculate Shannon entropy
-    entropy = -np.sum(probabilities * np.log2(probabilities))
-
-    return float(entropy)
-
-def get_average_image_color(image_data: Image.Image) -> tuple[int, ...]:
-    """
-    Calculate the average color of an image.
-
-    Args:
-        image_data: The loaded image data.
-
-    Returns:
-        A list of integers representing the average color of the image in RGB format. Each element
-        in the list corresponds to the average intensity of the Red, Green, and Blue channels,
-        respectively.
-
-        Note: If the input image is None, None will be returned.
-    """
-    # Convert the image to numpy array
-    np_image = np.array(image_data)
-
-    # Calculate the average color for each channel
-    average_color = np.mean(np_image, axis=(0, 1))
-
-    return tuple(map(int, average_color))
-
 class GeotagWorker(QObject):
     """
     Worker class that contains the geotagging logic intended to be run as a separate thread.
@@ -141,10 +92,6 @@ class GeotagWorker(QObject):
         else:
             image_platform = "Unknown"
 
-        with Image.open(self.export_dir / relative_fn) as img:
-            image_entropy = get_shannon_entropy(img)
-            image_average_color = get_average_image_color(img)
-
         self.ifdo_model.add_image_properties(
             image_relative_path=str(relative_fn),
             image_datetime=image_datetime,
@@ -152,9 +99,7 @@ class GeotagWorker(QObject):
             image_longitude=image_longitude,
             image_platform=image_platform,
             image_sensor="Unknown",
-            image_hash_sha256=image_hash_sha256,
-            image_entropy=image_entropy,
-            image_average_color=[*image_average_color]
+            image_hash_sha256=image_hash_sha256
         )
 
     def run(self):
@@ -261,8 +206,8 @@ class MainController(QObject):
             lambda x: setattr(self._model, 'imageSetName', x))
         self._app_view.contextChanged.connect(lambda x: setattr(self._model, 'imageContext', x))
         self._app_view.projectNameChanged.connect(lambda x: setattr(self._model, 'projectName', x))
-        self._app_view.campaignNameChanged.connect(
-            lambda x: setattr(self._model, 'campaignName', x))
+        self._app_view.eventNameChanged.connect(
+            lambda x: setattr(self._model, 'eventName', x))
         self._app_view.piNameChanged.connect(lambda x: setattr(self._model, 'piName', x))
         self._app_view.piOrcidChanged.connect(lambda x: setattr(self._model, 'piORCID', x))
         self._app_view.collectorNameChanged.connect(
@@ -274,8 +219,6 @@ class MainController(QObject):
         self._app_view.licenseChanged.connect(lambda x: setattr(self._model, 'license', x))
         self._app_view.distanceAGChanged.connect(
             lambda x: setattr(self._model, 'distanceAboveGround', x))
-        self._app_view.imageObjectiveChanged.connect(
-            lambda x: setattr(self._model, 'imageObjective', x))
         self._app_view.imageAbstractChanged.connect(
             lambda x: setattr(self._model, 'imageAbstract', x))
         self._app_view.startProcessingTriggered.connect(self.geotag)
@@ -359,7 +302,7 @@ class MainController(QObject):
             ifdo_model = IFDOModel(image_set_name=self._model.imageSetName,
                                    image_context=self._model.imageContext,
                                    image_project=self._model.projectName,
-                                   image_event=self._model.campaignName,
+                                   image_event=self._model.eventName,
                                    image_pi=(self._model.piName, self._model.piORCID if \
                                              self._model.piORCID != "" else "0000-0000-0000-0000"),
                                    image_creators=[(self._model.collectorName, \
@@ -369,7 +312,6 @@ class MainController(QObject):
                                    image_copyright=self._model.organisation,
                                    image_license=self._model.license,
                                    image_abstract=self._model.imageAbstract,
-                                   image_objective=self._model.imageObjective,
                                    image_meters_above_ground=float(self._model.distanceAboveGround))
         else:
             ifdo_model = None
