@@ -1,9 +1,19 @@
+"""
+application.py: Main window for the iBenthos Geotagging Tool application.
+This module provides the main GUI for the application
+
+Copyright (c) 2025
+Commonwealth Scientific and Industrial Research Organisation (CSIRO)
+ABN 41 687 119 230
+
+Author: Brendan Do <brendan.do@csiro.au>
+"""
 import logging
 import webbrowser
 
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import (QApplication, QCheckBox, QHBoxLayout, QLabel,
+from PySide6.QtWidgets import (QApplication, QCheckBox, QHBoxLayout,
                                QMainWindow, QProgressBar, QVBoxLayout, QWidget)
 
 from .components import (AboutDialog, ConfigDateTime, ConfigDirectory,
@@ -14,6 +24,12 @@ from .components import (AboutDialog, ConfigDateTime, ConfigDirectory,
 logger = logging.getLogger(__name__)
 
 class MainWindow(QMainWindow):
+    """
+    Main application window for the iBenthos Geotagging Tool.
+    """
+    # pylint: disable=invalid-name
+    # Camel case to comply with pyside6 naming conventions
+
     inputDirChanged = Signal(str)
     gpxFileChanged = Signal(str)
     gpsPhotoAvailableChanged = Signal(bool)
@@ -330,6 +346,12 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def enableDisableAttributionFields(self):
+        """
+        This method enables or disables the attribution fields based on the state of the
+        attribution export checkbox.
+        If the checkbox is unchecked, all attribution fields are cleared and disabled.
+        If the checkbox is checked, all attribution fields are enabled.
+        """
         enabled = self._attribution_export.isChecked()
         for widget in self._attribution_group:
             widget.setEnabled(enabled)
@@ -341,6 +363,12 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def enableDisableIFDODetails(self):
+        """
+        This method enables or disables the iFDO export fields based on the state of the
+        iFDO export checkbox.
+        If the checkbox is unchecked, all iFDO fields are cleared and disabled.
+        If the checkbox is checked, all iFDO fields are enabled.
+        """
         enabled =self._ifdo_export_checkbox.isChecked()
         for widget in self._ifdo_group:
             widget.setEnabled(enabled)
@@ -349,6 +377,12 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def enableDisableGPSPhotoFields(self):
+        """
+        This method enables or disables the GPS photo fields based on the state of the
+        GPS photo available checkbox.
+        If the checkbox is unchecked, all GPS photo fields are cleared and disabled.
+        If the checkbox is checked, all GPS photo fields are enabled.
+        """
         enabled = self._gps_photo_available_checkbox.isChecked()
         self._gps_photo_config.setEnabled(enabled)
         self._image_preview.setEnabled(enabled)
@@ -364,26 +398,48 @@ class MainWindow(QMainWindow):
 
     @Slot(str)
     def setDefaultPath(self, default_path: str):
+        """
+        This method sets the default path for the GPS Photo selector and GPX file selector.
+        Args:
+            default_path (str): The default path to set for the GPS Photo and GPX file selectors.
+        """
         self._gps_photo_config.defaultPath = default_path
         self._gpx_file_config.defaultPath = default_path
 
     @Slot(str)
     def setFeedbackText(self, text: str):
+        """
+        This method sets the feedback text in the feedback viewer.
+        Args:
+            text (str): The text to display in the feedback viewer.
+        """
         self._feedback_viewer.setText(text)
 
     @Slot(int)
     def setProgress(self, current_progress: int):
+        """
+        This method sets the progress value of the progress bar.
+        Args:
+            current_progress (int): The current progress value to set in the progress bar. [0-100]
+        """
         if not 0 <= current_progress <= 100:
             logger.warning("Progress received not within bounds! %i", current_progress)
             current_progress = max(0, min(100, current_progress))
         self._progress_bar.setValue(current_progress)
 
     def setTimezoneOptions(self, options: list):
+        """
+        This method sets the options for the GPS and camera timezone selectors.
+        Args:
+            options (list): A list of timezone options to set for both selectors."""
         self._gps_timezone_selector.setOptions(options)
         self._camera_timezone_selector.setOptions(options)
 
     @Slot()
     def clearForm(self):
+        """
+        This method clears all user input fields in the main window.
+        """
         self._input_dir_config.value = ""
         self._gpx_file_config.value = ""
         self._gps_photo_available_checkbox.setChecked(False)
@@ -411,12 +467,23 @@ class MainWindow(QMainWindow):
         self._kml_export.setChecked(False)
 
     def setTimezoneIndexDefault(self, index: int, reset: bool = False):
+        """
+        This method sets the default timezone index for both GPS and camera timezone selectors.
+        Args:
+            index (int): The index to set as the default timezone index.
+            reset (bool): If True, resets the current index of both selectors to the default index.
+        """
         self._timezone_index_default = index
         if reset:
             self._gps_timezone_selector.currentIndex = index
             self._camera_timezone_selector.currentIndex = index
 
     def manuallyTriggerFieldSignals(self):
+        """
+        This method manually triggers the valueChanged signals for all text fields.
+        This is useful when you want to ensure that all fields emit their changed signals
+        even if the values haven't changed.
+        """
         self._gps_datetime_config.dateChanged.emit(self._gps_datetime_config.date)
         self._gps_datetime_config.timeChanged.emit(self._gps_datetime_config.time)
         self._image_set_name.valueChanged.emit(self._image_set_name.value)
@@ -433,12 +500,19 @@ class MainWindow(QMainWindow):
         self._image_abstract.valueChanged.emit(self._image_abstract.value)
 
     def showAboutDialog(self, version="Unknown", build_hash="Unknown"):
-        """Show the About dialog."""
+        """
+        This method displays the About dialog.
+        """
         about_dialog = AboutDialog(self, version=version, build_hash=build_hash)
         about_dialog.exec()
 
     def OpenDocumentationURL(self, url="https://github.com/csiro/ibenthos-geotagging-tool"):
-        """Open documentation URL in default browser."""
+        """
+        This method opens documentation URL in default browser.
+        Args:
+            url (str): The URL to open in the default web browser.
+                       Defaults to the GitHub repository of the project.
+        """
         webbrowser.open(url)
 
 if __name__ == "__main__":

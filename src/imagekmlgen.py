@@ -1,9 +1,19 @@
+"""
+imagekmlgen.py: This module provides functionality to generate KML/KMZ files
+from images with GPS data. It supports generating circular thumbnails for images
+and includes them in the KML/KMZ file.
+
+Copyright (c) 2025
+Commonwealth Scientific and Industrial Research Organisation (CSIRO)
+ABN 41 687 119 230
+
+Author: Brendan Do <brendan.do@csiro.au>
+"""
 import logging
 import pathlib
 import zipfile
 from io import BytesIO
 from string import Template
-from typing import Optional, Tuple
 
 import simplekml
 from PIL import ExifTags, Image, ImageDraw
@@ -90,8 +100,8 @@ class ImageKMLGenerator:
         )
         self._generate_preview_thumbnail = preview_thumbnail
         self._thumbnails = {}
-    
-    def _generate_point_style(self, point: simplekml.Point, thumbnail_path: Optional[str] = None):
+
+    def _generate_point_style(self, point: simplekml.Point, thumbnail_path: str | None = None):
         """
         Generate the style for a point in the KML file.
 
@@ -121,7 +131,7 @@ class ImageKMLGenerator:
 
     def add_image_point(self, image_path, name: str = None,
                               max_width: int = 400,
-                              coordinates: Optional[Tuple[float, float]] = None):
+                              coordinates: tuple[float, float] | None = None):
         """
         Add a point to the KML file which contains the image in the description.
         Uses the image's GPS EXIF data to set the coordinates (lon, lat) if not provided.
