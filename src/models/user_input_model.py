@@ -1,13 +1,33 @@
+"""
+user_input_model.py: Data model for user input in the iBenthos Geotagging Tool application.
+This module defines the UserInputModel class, which manages user input data and provides validation
+methods.
 
+Copyright (c) 2025
+Commonwealth Scientific and Industrial Research Organisation (CSIRO)
+ABN 41 687 119 230
+
+Author: Brendan Do <brendan.do@csiro.au>
+"""
 import datetime
 import re
 from pathlib import Path
-from typing import Optional
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
 
 class UserInputModel(QObject):
+    """
+    Data model for user input in the iBenthos Geotagging Tool application.
+    This class provides properties for user input fields and emits signals when a property changes.
+    It also provides a method to clear all user input fields to their default values.
+    """
+    # pylint: disable=invalid-name
+    # Camel case to comply with pyside6 naming conventions
+
+    # pylint: disable=missing-function-docstring
+    # Setters and getters are self-explanatory and do not require additional documentation
+
     importDirectoryChanged = Signal(str)
     gpxFilepathChanged = Signal(str)
     gpsPhotoAvailableChanged = Signal(bool)
@@ -302,41 +322,55 @@ class UserInputModel(QObject):
 
     @Slot()
     def clearForm(self):
-        self.importDirectory = ""
-        self.gpxFilepath = ""
-        self.gpsPhotoAvailable = False
-        self.gpsPhotoFilepath = ""
-        self.gpsDate = ""
-        self.gpsTime = ""
-        self.gpsTimezoneIndex = 0
-        self.cameraTimezoneIndex = 0
-        self.exportDirectory = ""
-        self.ifdoEnable = False
-        self.imageSetName = ""
-        self.imageContext = ""
-        self.projectName = ""
-        self.eventName = ""
-        self.piName = ""
-        self.piORCID = ""
-        self.collectorName = ""
-        self.collectorORCID = ""
-        self.organisation = ""
-        self.license = "CC BY 4.0"
-        self.distanceAboveGround = ""
-        self.imageAbstract = ""
-        self.exportKML = False
-        self.attributionExport = False
-
-    @Slot(result=bool)
-    def validateForm(self):
-        validator = UserInputModelValidator()
-        return validator.validate(self)
+        """
+        Reset the UserInputModel to its default state.
+        This method clears all the user input fields to their default values.
+        """
+        self.importDirectory("")
+        self.gpxFilepath("")
+        self.gpsPhotoAvailable(False)
+        self.gpsPhotoFilepath("")
+        self.gpsDate("")
+        self.gpsTime("")
+        self.gpsTimezoneIndex(0)
+        self.cameraTimezoneIndex(0)
+        self.exportDirectory("")
+        self.ifdoEnable(False)
+        self.imageSetName("")
+        self.imageContext("")
+        self.projectName("")
+        self.eventName("")
+        self.piName("")
+        self.piORCID("")
+        self.collectorName("")
+        self.collectorORCID("")
+        self.organisation("")
+        self.license("CC BY 4.0")
+        self.distanceAboveGround("")
+        self.imageAbstract("")
+        self.exportKML("")
+        self.attributionExport("")
 
 class UserInputModelValidator:
+    """
+    Validator for the UserInputModel class.
+    """
     def __init__(self):
         self.latest_errors = []
 
     def validate(self, model: UserInputModel) -> bool:
+        """
+        Validate the user input model.
+        This method checks all the required fields and returns True if all validations pass,
+        otherwise returns False and sets the latest_errors attribute with the error messages.
+        Args:
+            model (UserInputModel): The user input model to validate.
+        Returns:
+            bool: True if the model is valid, False otherwise.
+        Sets:
+            latest_errors (list): A list of error messages if validation fails, empty if validation 
+                                  passes
+        """
         main_validators = {
             self._validate_import_directory : [model.importDirectory],
             self._validate_gpx_file : [model.gpxFilepath],
@@ -362,19 +396,19 @@ class UserInputModelValidator:
             self._validate_event_name : [model.ifdoEnable, model.eventName],
             self._validate_distance_above_ground : [model.ifdoEnable, model.distanceAboveGround],
             self._validate_image_abstract : [model.ifdoEnable, model.imageAbstract],
-            self._validate_input_path_not_output_path: [model.importDirectory,model.exportDirectory],
+            self._validate_input_path_not_output_path: [model.importDirectory,
+                                                        model.exportDirectory],
         }
         errors = list({x(*y) for x, y in main_validators.items()})
         if len(errors) > 1:
             errors.remove(None)
             self.latest_errors = errors
             return False
-        else:
-            self.latest_errors = []
-            return True
+        self.latest_errors = []
+        return True
 
     @staticmethod
-    def _validate_import_directory(import_dir: str) -> Optional[str]:
+    def _validate_import_directory(import_dir: str) -> str | None:
         if import_dir == "":
             return "Import directory is empty"
         path = Path(import_dir.replace("file://", ""))
@@ -385,7 +419,7 @@ class UserInputModelValidator:
         return None
 
     @staticmethod
-    def _validate_gpx_file(gpx_fp: str) -> Optional[str]:
+    def _validate_gpx_file(gpx_fp: str) -> str | None:
         if gpx_fp == "":
             return "GPX file path is empty"
         path = Path(gpx_fp.replace("file://", ""))
@@ -396,11 +430,11 @@ class UserInputModelValidator:
         return None
 
     @staticmethod
-    def _validate_gps_photo_available(gps_photo_available: bool) -> Optional[str]:
+    def _validate_gps_photo_available(_: bool) -> str | None:
         return None
 
     @staticmethod
-    def _validate_gps_photo_file(gps_photo_available: bool, gps_photo_fp: str) -> Optional[str]:
+    def _validate_gps_photo_file(gps_photo_available: bool, gps_photo_fp: str) -> str | None:
         if not gps_photo_available:
             return None
         if gps_photo_fp == "":
@@ -413,7 +447,7 @@ class UserInputModelValidator:
         return None
 
     @staticmethod
-    def _validate_gps_date(gps_photo_available: bool, gps_date: str) -> Optional[str]:
+    def _validate_gps_date(gps_photo_available: bool, gps_date: str) -> str | None:
         if not gps_photo_available:
             return None
         if gps_date == "":
@@ -425,7 +459,7 @@ class UserInputModelValidator:
         return None
 
     @staticmethod
-    def _validate_gps_time(gps_photo_available: bool, gps_time: str) -> Optional[str]:
+    def _validate_gps_time(gps_photo_available: bool, gps_time: str) -> str | None:
         if not gps_photo_available:
             return None
         if gps_time == "":
@@ -437,19 +471,19 @@ class UserInputModelValidator:
         return None
 
     @staticmethod
-    def _validate_gps_timezone(gps_tz: str) -> Optional[str]:
+    def _validate_gps_timezone(gps_tz: str) -> str | None:
         if gps_tz < 0:
             return "GPS Timezone field is empty"
         return None
 
     @staticmethod
-    def _validate_camera_timezone(camera_tz: str) -> Optional[str]:
+    def _validate_camera_timezone(camera_tz: str) -> str | None:
         if camera_tz < 0:
             return "Camera Timezone field is empty"
         return None
 
     @staticmethod
-    def _validate_output_directory(output_dir: str) -> Optional[str]:
+    def _validate_output_directory(output_dir: str) -> str | None:
         if output_dir == "":
             return "Export directory is empty"
         path = Path(output_dir.replace("file://", ""))
@@ -460,21 +494,21 @@ class UserInputModelValidator:
         return None
 
     @staticmethod
-    def _validate_export_kml(export_kml: bool) -> Optional[str]:
+    def _validate_export_kml(_: bool) -> str | None:
         return None
 
     @staticmethod
-    def _validate_attribution_export(attribution_export: bool) -> Optional[str]:
+    def _validate_attribution_export(_: bool) -> str | None:
         return None
 
     @staticmethod
-    def _validate_pi_name(attr_enable: bool, pi_name: str) -> Optional[str]:
+    def _validate_pi_name(attr_enable: bool, pi_name: str) -> str | None:
         if attr_enable and pi_name == "":
             return "PI name is empty"
         return None
 
     @staticmethod
-    def _validate_pi_orcid(attr_enable: bool, pi_orcid: str) -> Optional[str]:
+    def _validate_pi_orcid(attr_enable: bool, pi_orcid: str) -> str | None:
         if attr_enable and pi_orcid != "":
             # ensure that ORCID is correct format
             if not re.match(r"^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$", pi_orcid):
@@ -482,13 +516,13 @@ class UserInputModelValidator:
         return None
 
     @staticmethod
-    def _validate_collectors_name(attr_enable: bool, collectors_name: str) -> Optional[str]:
+    def _validate_collectors_name(attr_enable: bool, collectors_name: str) -> str | None:
         if attr_enable and collectors_name == "":
             return "Collector's name is empty"
         return None
-    
+
     @staticmethod
-    def _validate_collectors_orcid(attr_enable: bool, collectors_orcid: str) -> Optional[str]:
+    def _validate_collectors_orcid(attr_enable: bool, collectors_orcid: str) -> str | None:
         if attr_enable and collectors_orcid != "":
             # ensure that ORCID is correct format
             if not re.match(r"^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$", collectors_orcid):
@@ -496,47 +530,47 @@ class UserInputModelValidator:
         return None
 
     @staticmethod
-    def _validate_organisation(attr_enable: bool, organisation: str) -> Optional[str]:
+    def _validate_organisation(attr_enable: bool, organisation: str) -> str | None:
         if attr_enable and organisation == "":
             return "Copyright owner is empty"
         return None
 
     @staticmethod
-    def _validate_license(attr_enable: bool, license: str) -> Optional[str]:
-        if attr_enable and license == "":
+    def _validate_license(attr_enable: bool, license_str: str) -> str | None:
+        if attr_enable and license_str == "":
             return "License is empty"
         return None
 
     @staticmethod
-    def _validate_ifdo_enable(ifdo_enable: bool) -> Optional[str]:
+    def _validate_ifdo_enable(_: bool) -> str | None:
         return None
 
     @staticmethod
-    def _validate_image_set_name(ifdo_enable: bool, image_set_name: str) -> Optional[str]:
+    def _validate_image_set_name(ifdo_enable: bool, image_set_name: str) -> str | None:
         if ifdo_enable and image_set_name == "":
             return "Image set name is empty"
         return None
 
     @staticmethod
-    def _validate_image_context(ifdo_enable: bool, image_context: str) -> Optional[str]:
+    def _validate_image_context(ifdo_enable: bool, image_context: str) -> str | None:
         if ifdo_enable and image_context == "":
             return "Image context is empty"
         return None
 
     @staticmethod
-    def _validate_project_name(ifdo_enable: bool, project_name: str) -> Optional[str]:
+    def _validate_project_name(ifdo_enable: bool, project_name: str) -> str | None:
         if ifdo_enable and project_name == "":
             return "Project name is empty"
         return None
 
     @staticmethod
-    def _validate_event_name(ifdo_enable: bool, event_name: str) -> Optional[str]:
+    def _validate_event_name(ifdo_enable: bool, event_name: str) -> str | None:
         if ifdo_enable and event_name == "":
             return "Event name is empty"
         return None
 
     @staticmethod
-    def _validate_distance_above_ground(ifdo_enable: bool, distance: str) -> Optional[str]:
+    def _validate_distance_above_ground(ifdo_enable: bool, distance: str) -> str | None:
         if ifdo_enable:
             if distance == "":
                 return "Distance above ground is empty"
@@ -547,11 +581,13 @@ class UserInputModelValidator:
         return None
 
     @staticmethod
-    def _validate_image_abstract(ifdo_enable: bool, image_abstract: str) -> Optional[str]:
+    def _validate_image_abstract(ifdo_enable: bool, image_abstract: str) -> str | None:
+        if ifdo_enable and image_abstract == "":
+            return "Image abstract is empty"
         return None
 
     @staticmethod
-    def _validate_input_path_not_output_path(input_path: str, output_path: str) -> Optional[str]:
+    def _validate_input_path_not_output_path(input_path: str, output_path: str) -> str | None:
         if input_path == output_path:
             return "Input directory and output directory cannot be the same"
         return None

@@ -1,6 +1,11 @@
 '''
-ifdo.py
-Module is a stop-gap replacement for marimba packaging.
+ifdo.py: Module provides minimal implementation of the image FAIR Digital Objects (iFDO) model.
+
+Copyright (c) 2025
+Commonwealth Scientific and Industrial Research Organisation (CSIRO)
+ABN 41 687 119 230
+
+Author: Brendan Do <brendan.do@csiro.au>
 '''
 import datetime
 import uuid
@@ -10,6 +15,10 @@ import yaml
 
 
 class IFDOModel:
+    """
+    Minimal implementation of the image FAIR Digital Objects (iFDO) model.
+    Implements core and some capture properties as per version v2.1.0 of iFDO specification.
+    """
     def __init__(self,
         image_set_name: str,
         image_context: str,
