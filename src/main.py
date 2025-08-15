@@ -53,7 +53,7 @@ def _get_exiftool_path(prod_mode: bool, app_path: Path) -> str:
         return str(app_path / "bin" / exe_name)
 
     # Running as a script
-    subdir = "exiftool-13.29_64" if sys.platform == "win32" else "Image-ExifTool-13.29"
+    subdir = "exiftool-13.33_64" if sys.platform == "win32" else "Image-ExifTool-13.33"
     return str(app_path / ".." / subdir / exe_name)
 
 if __name__ == "__main__":

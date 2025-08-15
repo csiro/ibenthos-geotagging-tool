@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-EXIFTOOL_VERSION="13.29"
+EXIFTOOL_VERSION="13.33"
 EXIFTOOL_ARCHIVE_NAME="Image-ExifTool-$EXIFTOOL_VERSION.tar.gz"
 BUILD_DIR_NAME="x86_build"
 
@@ -17,7 +17,7 @@ git rev-parse HEAD > $BUILD_DIR_NAME/build_id.txt
 cat pyproject.toml | grep "version = " | sed -E "s/version = \"(.*)\"/\1/" | tr -d '\n' > $BUILD_DIR_NAME/version.txt
 
 # Download exiftool
-wget -O "$BUILD_DIR_NAME/$EXIFTOOL_ARCHIVE_NAME" "https://exiftool.org/$EXIFTOOL_ARCHIVE_NAME"
+wget -O "$BUILD_DIR_NAME/$EXIFTOOL_ARCHIVE_NAME" "https://sourceforge.net/projects/exiftool/files/$EXIFTOOL_ARCHIVE_NAME/download"
 tar -xzvf $BUILD_DIR_NAME/$EXIFTOOL_ARCHIVE_NAME -C $BUILD_DIR_NAME
 
 # Install Python packages
