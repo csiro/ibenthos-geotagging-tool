@@ -1,5 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 import sys
+import os
 
 from PyInstaller.utils.hooks import collect_all
 
@@ -45,7 +46,7 @@ exe = EXE( # pylint: disable=undefined-variable
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch='x86_64',
-    codesign_identity=None,
+    codesign_identity=os.environ.get("CODESIGN_ID", None),
     entitlements_file=None,
     icon='logo.icns',
 )
