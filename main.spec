@@ -6,11 +6,11 @@ from PyInstaller.utils.hooks import collect_all
 datas = [('x86_build/build_id.txt', '.'), ('x86_build/version.txt', '.')]
 hiddenimports = []
 if sys.platform == "darwin":
-    binaries = [('x86_build/Image-ExifTool-13.29/exiftool', 'bin'),
-                ('x86_build/Image-ExifTool-13.29/lib', 'bin/lib')]
+    binaries = [('x86_build/Image-ExifTool-13.33/exiftool', 'bin'),
+                ('x86_build/Image-ExifTool-13.33/lib', 'bin/lib')]
 else:
-    binaries = [('x86_build/exiftool-13.29_64/exiftool.exe', 'bin'),
-                ('x86_build/exiftool-13.29_64/exiftool_files', 'bin/exiftool_files')]
+    binaries = [('x86_build/exiftool-13.33_64/exiftool.exe', 'bin'),
+                ('x86_build/exiftool-13.33_64/exiftool_files', 'bin/exiftool_files')]
 tmp_ret = collect_all('dateutil')
 datas += tmp_ret[0]
 binaries += tmp_ret[1]

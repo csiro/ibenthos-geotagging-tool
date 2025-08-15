@@ -1,5 +1,5 @@
 
-$EXIFTOOL_VERSION = "13.29"
+$EXIFTOOL_VERSION = "13.33"
 $EXIFTOOL_ARCHIVE_NAME = "exiftool-${EXIFTOOL_VERSION}_64"
 $BUILD_DIR_NAME = "x86_build"
 
@@ -17,7 +17,7 @@ $Matches[1] | Out-File  -Encoding UTF8 -NoNewline "$BUILD_DIR_NAME\version.txt"
 $versionStr = $Matches[1]
 
 # Download exiftool
-Invoke-WebRequest -Uri "https://exiftool.org/$EXIFTOOL_ARCHIVE_NAME.zip" -OutFile "$BUILD_DIR_NAME\$EXIFTOOL_ARCHIVE_NAME.zip"
+Invoke-WebRequest -UserAgent "Wget" -Uri "https://sourceforge.net/projects/exiftool/files/$EXIFTOOL_ARCHIVE_NAME.zip/download" -OutFile "$BUILD_DIR_NAME\$EXIFTOOL_ARCHIVE_NAME.zip"
 Expand-Archive -Path "$BUILD_DIR_NAME\$EXIFTOOL_ARCHIVE_NAME.zip" -DestinationPath $BUILD_DIR_NAME -Force
 Rename-Item -Path "$BUILD_DIR_NAME\$EXIFTOOL_ARCHIVE_NAME\exiftool(-k).exe" -NewName "exiftool.exe"
 
