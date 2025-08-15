@@ -22,10 +22,11 @@ Expand-Archive -Path "$BUILD_DIR_NAME\$EXIFTOOL_ARCHIVE_NAME.zip" -DestinationPa
 Rename-Item -Path "$BUILD_DIR_NAME\$EXIFTOOL_ARCHIVE_NAME\exiftool(-k).exe" -NewName "exiftool.exe"
 
 # Install Python packages
-poetry install
+uv venv
+uv pip install ".[dev]"
 
 # Run PyInstaller
-poetry run pyinstaller --clean --noconfirm main.spec
+uv run pyinstaller --clean --noconfirm main.spec
 
 # Compile the installer
 ISCC.exe /O"dist" /F"ibenthosgeotaggingtool_setup_v$versionStr" /D"MyAppVersion=$versionStr" ".\windows_setup_builder.iss"

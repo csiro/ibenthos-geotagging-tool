@@ -14,7 +14,7 @@ A desktop application for geotagging underwater photos using GPS data from trans
 ## Requirements
 
 - Python 3.11 or higher (for development)
-- Poetry for dependency management
+- uv for dependency management
 - ExifTool (automatically downloaded during build)
 
 ## Development Setup
@@ -22,9 +22,9 @@ A desktop application for geotagging underwater photos using GPS data from trans
 ### Prerequisites
 
 1. Install Python 3.11+ from [python.org](https://python.org)
-2. Install Poetry:
+2. Install uv:
    ```bash
-   curl -sSL https://install.python-poetry.org | python3 -
+   curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
 
 ### Installation
@@ -37,24 +37,26 @@ A desktop application for geotagging underwater photos using GPS data from trans
 
 2. Install dependencies using Poetry:
    ```bash
-   poetry install
+   uv venv
+   uv pip install .
+   source .venv/bin/activate
    ```
 
 3. Run the application in development mode:
    ```bash
-   poetry run python src/main.py
+   python src/main.py
    ```
 
 ### Testing
 
 Run the test suite:
 ```bash
-poetry run pytest
+pytest
 ```
 
 Run specific test files:
 ```bash
-poetry run pytest tests/test_user_input_model.py
+pytest tests/test_user_input_model.py
 ```
 
 ## Building for Distribution
@@ -73,12 +75,7 @@ The macOS build targets x86_64 architecture, which runs natively on Intel Macs a
 
 1. Build the application bundle:
    ```bash
-   poetry run pyinstaller --clean --noconfirm main.spec
-   ```
-
-2. Code sign the application (replace with your developer certificate):
-   ```bash
-   codesign --force --sign "Mac Developer: Your Name (XXXXXXXXXX)" "./iBenthos Geotagging Tool.app"
+   pyinstaller --clean --noconfirm main.spec
    ```
 
 #### Building Universal x86 on Apple Silicon
