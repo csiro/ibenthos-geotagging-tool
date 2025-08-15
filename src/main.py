@@ -21,67 +21,40 @@ import views
 
 logger = logging.getLogger(__name__)
 
-def _get_runtime_variables():
-    """
-    Get runtime variables.
-    
-    Returns:
-        A tuple containing the runtime variables. (exftool_path, build_id, version)
-    """
-
-    prod_mode = getattr(sys, "frozen", False)
-
+def _get_build_id(prod_mode: bool, app_path: Path) -> str:
     if prod_mode:
         # Running as a package
-        app_path = Path(sys._MEIPASS) # pylint: disable=protected-access
+        try:
+            with open(app_path / "build_id.txt", "r", encoding="utf-8") as f:
+                return f.read().strip()
+        except FileNotFoundError:
+            logger.warning("Build ID file not found in package.")
+    return "development"
 
-        # Get exiftool_path based on platform
-        match sys.platform:
-            case "win32":
-                _exiftool_path = str(app_path / "bin" / "exiftool.exe")
-            case "darwin":
-                _exiftool_path = str(app_path / "bin" / "exiftool")
-            case _:
-                raise NotImplementedError(
-                                f"This platform is not currently supported: {sys.platform}")
+def _get_version(prod_mode: bool, app_path: Path) -> str:
+    if prod_mode:
+        # Running as a package
+        try:
+            with open(app_path / "version.txt", "r", encoding="utf-8") as f:
+                return f.read().strip()
+        except FileNotFoundError:
+            logger.warning("Version file not found in package.")
+    return "development"
 
-        # Read the git hash from the build_id.txt file
-        build_id_path = app_path / "build_id.txt"
-        _build_id = "0"
-        if build_id_path.exists():
-            with open(build_id_path, "r", encoding="utf-8") as f:
-                _build_id = f.read().strip()
-            logger.info("Build ID: %s", _build_id)
-        else:
-            logger.warning("Build ID file not found.")
+def _get_exiftool_path(prod_mode: bool, app_path: Path) -> str:
+    if sys.platform not in {"win32", "darwin"}:
+        raise NotImplementedError(
+            f"This platform is not currently supported: {sys.platform}")
 
-        # Read the version from the version.txt file
-        version_path = app_path / "version.txt"
-        _version = "0.0.0"
-        if version_path.exists():
-            with open(version_path, "r", encoding="utf-8") as f:
-                _version = f.read().strip()
-            logger.info("Version: %s", _version)
-        else:
-            logger.warning("Version file not found.")
-    else:
-        # Running as a script
-        app_path = Path(os.path.dirname(os.path.realpath(__file__)))
+    exe_name = "exiftool.exe" if sys.platform == "win32" else "exiftool"
 
-        # Get exiftool_path based on platform
-        match sys.platform:
-            case "win32":
-                _exiftool_path = str(app_path / ".." / "exiftool-13.29_64" / "exiftool.exe")
-            case "darwin":
-                _exiftool_path = str(app_path / ".." / "Image-ExifTool-13.29" / "exiftool")
-            case _:
-                raise NotImplementedError(
-                                f"This platform is not currently supported: {sys.platform}")
-        _build_id = "development"
-        _version = "development"
+    # Running as a package
+    if prod_mode:
+        return str(app_path / "bin" / exe_name)
 
-    return (_exiftool_path, _build_id, _version) # pylint: disable=used-before-assignment
-
+    # Running as a script
+    subdir = "exiftool-13.29_64" if sys.platform == "win32" else "Image-ExifTool-13.29"
+    return str(app_path / ".." / subdir / exe_name)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -92,14 +65,19 @@ if __name__ == "__main__":
 
     main_view = views.MainWindow()
 
-    exiftool_path, config_model.buildHash, config_model.version = _get_runtime_variables()
+    # Determine if we're running in production mode or not
+    MODE = getattr(sys, "frozen", False)
+    application_path = Path(sys._MEIPASS) if MODE else \
+                       Path(os.path.dirname(os.path.realpath(__file__))) # pylint: disable=protected-access
 
+    config_model.buildHash = _get_build_id(MODE, application_path)
+    config_model.version = _get_version(MODE, application_path)
 
     controller = controller.MainController(app_view=main_view,
                                            model=user_input_model,
                                            config=config_model,
                                            feedback=feedback_model,
-                                           exec_path=exiftool_path)
+                                           exec_path=_get_exiftool_path(MODE, application_path))
 
     main_view.show()
     sys.exit(app.exec())
