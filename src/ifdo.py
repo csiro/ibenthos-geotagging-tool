@@ -73,25 +73,10 @@ class IFDOModel:
         new_image['image-latitude'] = image_latitude
         new_image['image-longitude'] = image_longitude
         new_image['image-altitude-meters'] = self.image_altitude_meters
-        new_image['image-context'] = {'name': self.image_context}
-        new_image['image-project'] = {'name': self.image_project}
-        new_image['image-event'] = {'name': self.image_event}
         new_image['image-platform'] = {'name': image_platform}
         new_image['image-sensor'] = {'name': image_sensor}
         new_image['image-uuid'] = str(uuid.uuid4())
         new_image['image-hash-sha256'] = image_hash_sha256
-        new_image['image-pi'] = self.image_pi
-        new_image['image-creators'] = self.image_creators
-        new_image['image-license'] = self.image_license
-        new_image['image-copyright'] = self.image_copyright
-        new_image['image-abstract'] = self.image_abstract
-        new_image['image-acquisition'] = self.image_acquisition
-        new_image['image-quality'] = self.image_quality
-        new_image['image-deployment'] = self.image_deployment
-        new_image['image-navigation'] = self.image_navigation
-        new_image['image-meters-above-ground'] = self.image_meters_above_ground
-        new_image['image-target-environment'] = self.image_target_environment
-
         self.images[image_relative_path] = [new_image]
 
     def export_ifdo_dict(self) -> Dict:
@@ -101,6 +86,20 @@ class IFDOModel:
         output['image-set-header']['image-set-name'] = self.image_set_name
         output['image-set-header']['image-set-handle'] = ''
         output['image-set-header']['image-set-ifdo-version'] = 'v2.1.0'
+        output['image-set-header']['image-context'] = {'name': self.image_context}
+        output['image-set-header']['image-project'] = {'name': self.image_project}
+        output['image-set-header']['image-event'] = {'name': self.image_event}
+        output['image-set-header']['image-pi'] = self.image_pi
+        output['image-set-header']['image-creators'] = self.image_creators
+        output['image-set-header']['image-license'] = self.image_license
+        output['image-set-header']['image-copyright'] = self.image_copyright
+        output['image-set-header']['image-abstract'] = self.image_abstract
+        output['image-set-header']['image-acquisition'] = self.image_acquisition
+        output['image-set-header']['image-quality'] = self.image_quality
+        output['image-set-header']['image-deployment'] = self.image_deployment
+        output['image-set-header']['image-navigation'] = self.image_navigation
+        output['image-set-header']['image-meters-above-ground'] = self.image_meters_above_ground
+        output['image-set-header']['image-target-environment'] = self.image_target_environment
         output['image-set-items'] = self.images
         return output
 

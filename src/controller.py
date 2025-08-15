@@ -83,7 +83,7 @@ class GeotagWorker(QObject):
 
         # Calculate SHA256 hash of the image file
         hasher = hashlib.sha256()
-        with open(self.export_dir / relative_fn, 'rb') as image_file:
+        with open(self.config.export_dir / relative_fn, 'rb') as image_file:
             while chunk := image_file.read(1_048_576):  # 1MB chunks
                 hasher.update(chunk)
         image_hash_sha256 = hasher.hexdigest()
@@ -99,6 +99,56 @@ class GeotagWorker(QObject):
             image_hash_sha256=image_hash_sha256
         )
 
+    def _process_image(self, image_fn: Path, et: ExifToolHelper, 
+                             kml_gen: ImageKMLGenerator | None = None):
+        relative_fn = image_fn.relative_to(self.config.import_dir)
+        exif_data = et.get_metadata(str(image_fn))[0]
+        new_exif_tags = copy.copy(self.config.base_tags)
+
+        # Generate GPS tags based on the EXIF data and the GPX file
+        try:
+            new_exif_tags |= self.config.tagger.generate_gps_tags(exif_data,
+                                                        tz_override=self.config.tz_override)
+        except IndexError as e:
+            logger.error(
+                "Image %s not within range of GPX file. Skipping this image.", image_fn
+            )
+            self.error_msgs.emit(
+                f"Image {image_fn} not within range of GPX file. Skipping this image."
+            )
+            logger.error(e)
+            return
+        except AssertionError as _:
+            logger.error(
+                "Image %s does not contain time data. Skipping this image.", image_fn
+            )
+            self.error_msgs.emit(
+                f"Image {image_fn} does not contain time data. Skipping this image."
+            )
+            return
+
+        # Save the image with the new EXIF tags
+        save_fn = self.config.export_dir / relative_fn
+        save_fn.parent.mkdir(parents=True, exist_ok=True)
+        if not save_fn.parent.exists():
+            logger.error("Failed to create directory %s", save_fn.parent)
+            return
+        shutil.copy2(image_fn, save_fn)
+        et.set_tags(files=save_fn, tags=new_exif_tags, params=['-overwrite_original'])
+
+        # Add to IFDO model if enabled
+        if self.config.ifdo_model is not None:
+            self.add_to_ifdo(relative_fn, exif_data, new_exif_tags)
+
+        # Add to KML generator if enabled
+        if kml_gen:
+            try:
+                kml_gen.add_image_point(save_fn)
+            except KeyError as e:
+                logger.error("Missing GPS data in image %s: %s", image_fn, e)
+                self.error_msgs.emit(f"Missing GPS data in image {image_fn}: {e}")
+        logger.info("Image %s geotagged and saved to %s", image_fn, save_fn)
+
     def run(self):
         """
         Runs the geotagging process.
@@ -112,45 +162,7 @@ class GeotagWorker(QObject):
 
         with ExifToolHelper(executable=self.config.exiftool_exec_path) as et:
             for idx, image_fn in enumerate(image_list):
-                relative_fn = image_fn.relative_to(self.config.import_dir)
-                exif_data = et.get_metadata(str(image_fn))[0]
-                new_exif_tags = copy.copy(self.config.base_tags)
-                try:
-                    new_exif_tags |= self.config.tagger.generate_gps_tags(exif_data,
-                                                                tz_override=self.config.tz_override)
-                except IndexError as e:
-                    logger.error(
-                        "Image %s not within range of GPX file. Skipping this image.", image_fn
-                    )
-                    self.error_msgs.emit(
-                        f"Image {image_fn} not within range of GPX file. Skipping this image."
-                    )
-                    logger.error(e)
-                    continue
-                except AssertionError as _:
-                    logger.error(
-                        "Image %s does not contain time data. Skipping this image.", image_fn
-                    )
-                    self.error_msgs.emit(
-                        f"Image {image_fn} does not contain time data. Skipping this image."
-                    )
-                    continue
-                save_fn = self.config.export_dir / relative_fn
-                save_fn.parent.mkdir(parents=True, exist_ok=True)
-                if not save_fn.parent.exists():
-                    logger.error("Failed to create directory %s", save_fn.parent)
-                    continue
-                shutil.copy2(image_fn, save_fn)
-                et.set_tags(files=save_fn, tags=new_exif_tags, params=['-overwrite_original'])
-                if self.config.ifdo_model is not None:
-                    self.add_to_ifdo(relative_fn, exif_data, new_exif_tags)
-                logger.info("Image %s geotagged and saved to %s", image_fn, save_fn)
-                if kml_gen:
-                    try:
-                        kml_gen.add_image_point(save_fn)
-                    except KeyError as e:
-                        logger.error("Missing GPS data in image %s: %s", image_fn, e)
-                        self.error_msgs.emit(f"Missing GPS data in image {image_fn}: {e}")
+                self._process_image(image_fn, et, kml_gen)
                 self.progress.emit(idx, total_images)
         # Save the IFDO model to a file
         if self.config.ifdo_model is not None:
@@ -210,13 +222,15 @@ class MainController(QObject):
             'exportKML': self._app_view.kmlExportChanged,
             'attributionExport': self._app_view.attributionExportChanged
         }
+
+        def _make_model_updater(attr):
+            return lambda x: setattr(self._model, attr, x)
+
         for model_attr, view_signal in model_to_view_signal_map.items():
-            view_signal.connect(
-                lambda x, attr=model_attr: setattr(self._model, attr, x)
-            )
+            view_signal.connect(_make_model_updater(model_attr))
 
         # Connect processing logic
-        self._app_view.startProcessingTriggered.connect(self.geotag)
+        self._app_view.startProcessingTriggered.connect(self.run_geotagging_process)
 
         # Connect internal view logic
         self._app_view.clearFormTriggered.connect(self._app_view.clearForm)
@@ -261,8 +275,55 @@ class MainController(QObject):
             "Copyright": f"{self._model.organisation} (Licensed under {self._model.license})"
         }
 
+    @staticmethod
+    def _strip_file_url(file_path: str) -> str:
+        return file_path.removeprefix("file://")
+
+    def _create_geotagger(self, tz_override: str) -> PhotoTransectGPSTagger:
+        # Use GPS photo and timestamp only if GPS photo is available
+        jpg_gps_timestamp = None
+        gps_photo_path = None
+        if self._model.gpsPhotoAvailable:
+            jpg_gps_timestamp = datetime.datetime.fromisoformat(
+                self._model.gpsDate + " " + self._model.gpsTime
+            )
+            jpg_gps_timestamp = jpg_gps_timestamp.replace(tzinfo=Timezone(
+                self._config.gpsTimezoneOptions[self._model.gpsTimezoneIndex])
+            )
+            gps_photo_path = self._strip_file_url(self._model.gpsPhotoFilepath)
+
+        return PhotoTransectGPSTagger.from_files(
+            self._strip_file_url(self._model.gpxFilepath),
+            jpg_gps_fn=gps_photo_path,
+            jpg_gps_timestamp=jpg_gps_timestamp,
+            exiftool_path=self._exec_path,
+            tz_override=tz_override
+        )
+
+    def _create_ifdo_model(self) -> IFDOModel | None:
+        """
+        Create an IFDO model based on the user input.
+        Returns:
+            IFDOModel: The created IFDO model or None if IFDO export is not enabled.
+        """
+        if not self._model.ifdoEnable:
+            return None
+        return IFDOModel(
+            image_set_name=self._model.imageSetName,
+            image_context=self._model.imageContext,
+            image_project=self._model.projectName,
+            image_event=self._model.eventName,
+            image_pi=(self._model.piName, self._model.piORCID or "0000-0000-0000-0000"),
+            image_creators=[(self._model.collectorName, self._model.collectorORCID or
+                             "0000-0000-0000-0000")],
+            image_copyright=self._model.organisation,
+            image_license=self._model.license,
+            image_abstract=self._model.imageAbstract,
+            image_meters_above_ground=float(self._model.distanceAboveGround)
+        )
+
     @Slot()
-    def geotag(self):
+    def run_geotagging_process(self):
         """
         Slot intended to start the geotagging process.
         This method validates the user input, and starts the geotagging worker thread.
@@ -281,50 +342,20 @@ class MainController(QObject):
                 self._feedback.addFeedbackLine(error)
             return
 
-        # Create the PhotoTransectGPSTagger object
-        # Use GPS photo and timestamp only if GPS photo is available
+        # Define the timezone override based on the camera timezone index
         tz_override = self._config.gpsTimezoneOptions[self._model.cameraTimezoneIndex]\
                           .replace("UTC", "")
-        jpg_gps_timestamp = None
-        gps_photo_path = None
-        if self._model.gpsPhotoAvailable:
-            jpg_gps_timestamp = datetime.datetime.fromisoformat(
-                self._model.gpsDate + " " + self._model.gpsTime
-            )
-            jpg_gps_timestamp = jpg_gps_timestamp.replace(tzinfo=Timezone(
-                self._config.gpsTimezoneOptions[self._model.gpsTimezoneIndex])
-            )
-            gps_photo_path = self._model.gpsPhotoFilepath.replace("file://", "")
 
-        tagger = PhotoTransectGPSTagger.from_files(
-            self._model.gpxFilepath.replace("file://", ""),
-            jpg_gps_fn=gps_photo_path,
-            jpg_gps_timestamp=jpg_gps_timestamp,
-            exiftool_path=self._exec_path,
-            tz_override=tz_override
-        )
+        # Create the PhotoTransectGPSTagger object
+        tagger = self._create_geotagger(tz_override)
+
         # Create the IFDO model
-        ifdo_model = None
-        if self._model.ifdoEnable:
-            ifdo_model = IFDOModel(image_set_name=self._model.imageSetName,
-                                   image_context=self._model.imageContext,
-                                   image_project=self._model.projectName,
-                                   image_event=self._model.eventName,
-                                   image_pi=(self._model.piName, self._model.piORCID if \
-                                             self._model.piORCID != "" else "0000-0000-0000-0000"),
-                                   image_creators=[(self._model.collectorName, \
-                                                    self._model.collectorORCID if \
-                                                        self._model.collectorORCID != "" else \
-                                                        "0000-0000-0000-0000")],
-                                   image_copyright=self._model.organisation,
-                                   image_license=self._model.license,
-                                   image_abstract=self._model.imageAbstract,
-                                   image_meters_above_ground=float(self._model.distanceAboveGround))
+        ifdo_model = self._create_ifdo_model()
 
         # Create new worker thread
         self._workerthread = QThread()
-        import_dir = Path(self._model.importDirectory.replace("file://", ""))
-        export_dir = Path(self._model.exportDirectory.replace("file://", ""))
+        import_dir = Path(self._strip_file_url(self._model.importDirectory))
+        export_dir = Path(self._strip_file_url(self._model.exportDirectory))
         worker_config = GeotagWorkerConfig(
             tagger=tagger,
             import_dir=import_dir,
