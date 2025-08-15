@@ -21,10 +21,12 @@ wget -O "$BUILD_DIR_NAME/$EXIFTOOL_ARCHIVE_NAME" "https://sourceforge.net/projec
 tar -xzvf $BUILD_DIR_NAME/$EXIFTOOL_ARCHIVE_NAME -C $BUILD_DIR_NAME
 
 # Install Python packages
-arch -x86_64 poetry install
+uv venv
+uv pip install ".[dev]"
+
 
 # Generate the binary
-arch -x86_64 poetry run pyinstaller --clean --noconfirm main.spec
+uv run pyinstaller --clean --noconfirm main.spec
 
 # Create the zip file
 cd dist
