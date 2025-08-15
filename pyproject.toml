@@ -1,6 +1,6 @@
 [project]
 name = "ibenthos-geotagging-tool"
-version = "0.99.2"
+version = "1.0.0"
 description = ""
 authors = [
     {name = "Brendan Do", email = "brendan.do@csiro.au"},
